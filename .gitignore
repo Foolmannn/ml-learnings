@@ -1,0 +1,27 @@
+# Ignore all CSV files in any directory
+*.csv
+*.jpg
+*.webp
+*.jpeg
+*.png
+*.mp4
+*.mp3
+
+
+
+# Ignore common data file formats
+*.csv
+*.json
+*.xml
+*.parquet
+*.feather
+*.h5
+*.pkl
+*.pickle
+
+# Ignore entire data directories (common names)
+data/
+dataset/
+datasets/
+results/
+output/
