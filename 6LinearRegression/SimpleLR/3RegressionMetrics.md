@@ -514,3 +514,154 @@ Always increases when features increase
 Not reliable alone
 
 ---
+
+# 5. Adjusted R² Score
+
+Problem
+
+Adding more features always increases R².
+
+Even useless features.
+
+Example
+
+Predict Salary
+
+Features
+
+Age
+
+Experience
+
+Education
+
+Now add
+
+Random number
+
+R² usually increases slightly.
+
+But the model didn't truly improve.
+
+Adjusted R² fixes this.
+
+Formula
+
+$$
+Adjusted\ R^2
+=
+1-
+(1-R^2)
+\frac{n-1}{n-p-1}
+$$
+
+Where
+
+- n = Number of observations
+- p = Number of independent features
+
+---
+
+## Why Adjusted R²?
+
+It rewards useful features and penalizes unnecessary ones.
+
+If a newly added feature does not improve the model enough to justify its complexity, Adjusted R² decreases.
+
+---
+
+## Example
+
+Model A
+
+2 features
+
+R² = 0.85
+
+Adjusted R² = 0.84
+
+Model B
+
+10 features
+
+R² = 0.86
+
+Adjusted R² = 0.80
+
+Although Model B has a higher R², its much lower Adjusted R² suggests many of the added features are not contributing meaningful predictive power.
+
+---
+
+## When to Use
+
+- Multiple Linear Regression
+- Comparing models with different numbers of features
+- Feature selection
+
+---
+
+# 6. Mean Absolute Percentage Error (MAPE)
+
+Formula
+
+$$
+MAPE
+=
+\frac{100}{n}
+\sum
+\left|
+\frac{y-\hat y}{y}
+\right|
+$$
+
+Measures average percentage error.
+
+Example
+
+Actual =100
+
+Predicted=90
+
+Error
+
+10%
+
+Very interpretable.
+
+---
+
+Disadvantages
+
+Cannot handle actual value = 0
+
+Explodes for small values
+
+---
+
+Use
+
+Business forecasting
+
+Sales prediction
+
+Demand prediction
+
+---
+
+# 7. Median Absolute Error
+
+Formula
+
+Median of
+
+$$
+|y-\hat y|
+$$
+
+Instead of averaging,
+
+takes median.
+
+Very robust to outliers.
+
+---
