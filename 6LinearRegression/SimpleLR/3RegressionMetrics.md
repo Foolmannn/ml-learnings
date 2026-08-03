@@ -665,3 +665,131 @@ takes median.
 Very robust to outliers.
 
 ---
+
+# 8. Explained Variance Score
+
+Measures how much variance the model captures.
+
+Formula
+
+$$
+1-\frac{Var(y-\hat y)}{Var(y)}
+$$
+
+Similar to R².
+
+Difference
+
+Doesn't penalize systematic bias as strongly.
+
+---
+
+# 9. Mean Squared Logarithmic Error (MSLE)
+
+Formula
+
+$$
+MSLE=
+\frac1n
+\sum
+(\log(1+y)-\log(1+\hat y))^2
+$$
+
+Useful when
+
+Target values vary across several orders of magnitude (e.g., 10 vs. 10,000).
+
+Large percentage differences matter more than large absolute differences.
+
+Common in price prediction, population growth, or count prediction.
+
+---
+
+Advantages
+
+- Reduces the influence of extremely large target values.
+- Focuses on relative (percentage-like) errors.
+- Penalizes underestimation more than overestimation after the log transform.
+
+Disadvantages
+
+- Requires non-negative target values.
+- Harder to interpret than MAE or RMSE.
+
+---
+
+# 10. Root Mean Squared Logarithmic Error (RMSLE)
+
+Formula
+
+$$
+RMSLE=\sqrt{MSLE}
+$$
+
+Same concept as RMSE but applied after taking logarithms.
+
+Useful when:
+
+- Predicting values with exponential growth.
+- Relative errors are more important than absolute errors.
+
+---
+
+# Which Metric Should You Choose?
+
+| Metric | Outlier Sensitive | Same Unit as Target | Best For |
+|---------|-------------------|---------------------|----------|
+| MAE | ❌ Low | ✅ Yes | General-purpose, robust to outliers |
+| MSE | ✅ Very High | ❌ No (squared units) | Training models, optimization |
+| RMSE | ✅ High | ✅ Yes | Penalizing large errors while remaining interpretable |
+| R² | Depends on residuals | N/A | Measuring explained variance |
+| Adjusted R² | Depends | N/A | Comparing models with different numbers of features |
+| MAPE | Medium | Percentage | Business and demand forecasting |
+| Median Absolute Error | Very Low | Yes | Heavy outlier scenarios |
+| Explained Variance | Medium | N/A | Measuring captured variance |
+| MSLE | Low for large targets | Log scale | Exponential or skewed targets |
+| RMSLE | Low for large targets | Log scale | Relative error-focused problems |
+
+---
+
+# Metrics Available in Scikit-learn
+
+```python
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    root_mean_squared_error,
+    r2_score,
+    mean_absolute_percentage_error,
+    median_absolute_error,
+    explained_variance_score,
+    mean_squared_log_error,
+    root_mean_squared_log_error
+)
+
+mae = mean_absolute_error(y_true, y_pred)
+mse = mean_squared_error(y_true, y_pred)
+rmse = root_mean_squared_error(y_true, y_pred)   # scikit-learn >= 1.4
+r2 = r2_score(y_true, y_pred)
+mape = mean_absolute_percentage_error(y_true, y_pred)
+medae = median_absolute_error(y_true, y_pred)
+evs = explained_variance_score(y_true, y_pred)
+msle = mean_squared_log_error(y_true, y_pred)
+rmsle = root_mean_squared_log_error(y_true, y_pred)  # scikit-learn >= 1.4
+```
+
+---
+
+# Key Takeaways
+
+- **MAE**: Average absolute error; easy to understand and robust to outliers.
+- **MSE**: Squares errors, making it highly sensitive to large mistakes; commonly used as a training loss.
+- **RMSE**: Square root of MSE; retains the original unit of the target while still emphasizing large errors.
+- **R²**: Indicates the proportion of variance explained by the model. Higher is generally better, but it can increase simply by adding features.
+- **Adjusted R²**: Corrects R² by penalizing unnecessary features, making it more reliable for comparing multiple regression models.
+- **MAPE**: Reports average percentage error, but performs poorly when actual values are zero or very small.
+- **Median Absolute Error**: Extremely robust when datasets contain significant outliers.
+- **Explained Variance Score**: Measures how much variability in the target is captured by the model.
+- **MSLE/RMSLE**: Better choices when relative errors matter more than absolute errors and the target values span a wide range.
+
+---
