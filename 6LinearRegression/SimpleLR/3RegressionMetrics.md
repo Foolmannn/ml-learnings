@@ -256,3 +256,261 @@ Weather prediction
 Autonomous driving
 
 ---
+
+# 3. Root Mean Squared Error (RMSE)
+
+RMSE is simply the square root of MSE.
+
+Formula
+
+$$
+RMSE=\sqrt{MSE}
+$$
+
+For our example
+
+$$
+RMSE=\sqrt{61.6}=7.85
+$$
+
+---
+
+Why take square root?
+
+Because MSE has squared units.
+
+RMSE converts back to original units.
+
+House price example
+
+MSE
+
+Dollar²
+
+RMSE
+
+Dollar
+
+Easy to interpret.
+
+---
+
+Advantages
+
+Same unit as target
+
+Penalizes large errors
+
+Widely used
+
+---
+
+Disadvantages
+
+Still affected by outliers.
+
+---
+
+Use RMSE when
+
+Large mistakes should be penalized,
+
+but interpretation is important.
+
+---
+
+# MAE vs RMSE
+
+| Feature | MAE | RMSE |
+|----------|------|------|
+|Squares errors?|No|Yes|
+|Outlier sensitive?|Low|High|
+|Interpretability|Easy|Easy|
+|Optimization|Less smooth|Very smooth|
+|Large error penalty|Low|High|
+
+---
+
+Example
+
+Errors
+
+2,2,2,20
+
+MAE
+
+6.5
+
+RMSE
+
+10.1
+
+Notice RMSE increased much more.
+
+---
+
+# 4. R² Score (Coefficient of Determination)
+
+Most popular regression metric.
+
+Instead of measuring prediction error,
+
+it measures
+
+> **How much variance is explained by the model?**
+
+Think of it like
+
+How much information in the data your model captures.
+
+---
+
+Variance
+
+Suppose house prices are
+
+100
+
+120
+
+140
+
+160
+
+180
+
+There is variation.
+
+A regression model tries to explain this variation.
+
+---
+
+Formula
+
+$$
+R^2 = 1-\frac{SS_{res}}{SS_{tot}}
+$$
+
+Where
+
+Residual Sum of Squares
+
+$$
+SS_{res}
+=
+\sum(y-\hat y)^2
+$$
+
+Total Sum of Squares
+
+$$
+SS_{tot}
+=
+\sum(y-\bar y)^2
+$$
+
+---
+
+## Interactive intuition
+
+
+
+---
+
+## Interpretation
+
+### R² = 1
+
+Perfect prediction
+
+Every point lies exactly on regression line.
+
+---
+
+### R² = 0
+
+Model performs no better than predicting the mean.
+
+---
+
+### R² < 0
+
+Model performs worse than simply predicting the average.
+
+---
+
+Example
+
+Actual
+
+10
+
+20
+
+30
+
+40
+
+Mean
+
+25
+
+A bad model predicts
+
+100
+
+100
+
+100
+
+100
+
+Its error exceeds the error from always predicting 25.
+
+R² becomes negative.
+
+---
+
+## Example
+
+Suppose
+
+SSres = 50
+
+SStotal = 200
+
+Then
+
+$$
+R^2
+=
+1-\frac{50}{200}
+=
+0.75
+$$
+
+Meaning
+
+The model explains **75% of the variability** in the target values, while the remaining **25%** is unexplained (noise, missing features, or model limitations).
+
+---
+
+Advantages
+
+Independent of scale
+
+Easy comparison
+
+Popular
+
+---
+
+Disadvantages
+
+Doesn't indicate overfitting
+
+Always increases when features increase
+
+Not reliable alone
+
+---
