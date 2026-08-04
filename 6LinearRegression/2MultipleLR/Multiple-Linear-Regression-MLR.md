@@ -200,3 +200,191 @@ $$
 Smaller MSE means a better model.
 
 ---
+
+# 7. How are Coefficients Found?
+
+There are two common approaches.
+
+## Method 1: Normal Equation (Closed-form)
+
+$$
+\beta=(X^TX)^{-1}X^Ty
+$$
+
+Advantages
+
+- Exact solution
+- No iterations
+
+Disadvantages
+
+- Slow for many features
+- Matrix inversion is expensive
+
+---
+
+## Method 2: Gradient Descent
+
+Initialize coefficients randomly.
+
+Repeat:
+
+- Predict
+- Compute error
+- Compute gradients
+- Update coefficients
+
+Update rule:
+
+$$
+\beta=\beta-\alpha\frac{\partial J}{\partial \beta}
+$$
+
+where
+
+- α = learning rate
+
+---
+
+# 8. Geometric Interpretation
+
+### Simple Linear Regression
+
+One feature
+
+↓
+
+Fit a line
+
+```
+*
+ *
+  *
+   ------
+```
+
+---
+
+### Multiple Linear Regression (2 Features)
+
+Two features
+
+↓
+
+Fit a plane
+
+```
+      /
+     /
+----/
+```
+
+---
+
+### Three Features
+
+Fit a hyperplane in higher dimensions.
+
+---
+
+# 9. Assumptions of Multiple Linear Regression
+
+These assumptions are crucial for statistical interpretation and reliable inference.
+
+## 1. Linear Relationship
+
+Target should have a linear relationship with predictors.
+
+Good:
+
+```
+Price ↑
+
+|
+|      *
+|   *
+| *
++-------------
+```
+
+Bad:
+
+```
+Price
+
+|
+| *
+|    *
+|       *
+|          *
++--------------
+```
+
+(curved relationship)
+
+---
+
+## 2. Independence of Errors
+
+Residuals should not depend on each other.
+
+Common issue:
+
+Time-series data.
+
+---
+
+## 3. Homoscedasticity
+
+Residual variance should remain constant.
+
+Good:
+
+```
+Residuals
+
+ *
+  *
+ *
+ *
+  *
+```
+
+Bad:
+
+```
+*
+ *
+  *
+     *
+        *
+```
+
+(funnel shape)
+
+---
+
+## 4. Normality of Residuals
+
+Residuals should approximately follow a normal distribution.
+
+Important for confidence intervals and hypothesis tests.
+
+---
+
+## 5. No Multicollinearity
+
+Features should not be highly correlated.
+
+Example:
+
+```
+House Size
+Square Feet
+```
+
+These measure nearly the same thing.
+
+The model struggles to separate their effects.
+
+---
