@@ -388,3 +388,139 @@ These measure nearly the same thing.
 The model struggles to separate their effects.
 
 ---
+
+# 10. Multicollinearity
+
+Example
+
+```
+x1 = Height (cm)
+
+x2 = Height (meters)
+```
+
+They contain almost identical information.
+
+Problems
+
+- Unstable coefficients
+- Large variance
+- Difficult interpretation
+
+Detection
+
+- Correlation matrix
+- VIF (Variance Inflation Factor)
+
+Rules of thumb:
+
+- VIF = 1 → No multicollinearity
+- VIF < 5 → Usually acceptable
+- VIF > 10 → Serious multicollinearity
+
+Solutions
+
+- Remove redundant features
+- Combine correlated features
+- Apply PCA
+- Use Ridge Regression
+
+---
+
+# 11. Interpretation of Coefficients
+
+Suppose
+
+$$
+Price=50000+120(Size)+8000(Rooms)-1000(Age)
+$$
+
+Interpretation:
+
+Intercept
+
+50,000
+
+Price when all features are zero.
+
+---
+
+Size coefficient
+
+120
+
+Holding all other features constant,
+
+Every extra square foot increases price by 120.
+
+---
+
+Rooms coefficient
+
+8000
+
+One extra room increases price by 8000.
+
+---
+
+Age coefficient
+
+−1000
+
+One more year reduces price by 1000.
+
+---
+
+# 12. Feature Scaling
+
+Theoretically,
+
+Normal Equation does not require scaling.
+
+Gradient Descent benefits greatly from scaling because it converges faster.
+
+Common methods:
+
+- Standardization (Z-score)
+- Min-Max Scaling
+- Robust Scaling
+
+---
+
+# 13. Training Process
+
+Step 1
+
+Collect dataset.
+
+↓
+
+Step 2
+
+Split features and target.
+
+↓
+
+Step 3
+
+Train model.
+
+↓
+
+Step 4
+
+Estimate coefficients.
+
+↓
+
+Step 5
+
+Predict on test data.
+
+↓
+
+Step 6
+
+Evaluate using metrics like MAE, MSE, RMSE, and $R^2$.
+
+---
