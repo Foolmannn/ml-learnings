@@ -90,3 +90,138 @@ You will understand what sklearn is actually doing.
 - SGD
 
 ---
+
+# Stage 2: Recreate the Entire ML Pipeline
+
+For every dataset follow the same pipeline.
+
+```
+Dataset
+      ↓
+EDA
+      ↓
+Cleaning
+      ↓
+Feature Engineering
+      ↓
+Train/Test Split
+      ↓
+Scaling
+      ↓
+Model Selection
+      ↓
+Training
+      ↓
+Hyperparameter Tuning
+      ↓
+Evaluation
+      ↓
+Deployment
+```
+
+Repeat this workflow until it becomes second nature.
+
+---
+
+# Stage 3: Use Kaggle Datasets
+
+Do **many** datasets instead of one huge project.
+
+Examples:
+
+### Housing Price Prediction
+
+Skills learned
+
+- Missing values
+- Encoding
+- Scaling
+- Regression
+- Feature Engineering
+
+---
+
+### Titanic Survival
+
+Skills learned
+
+- Classification
+- Missing values
+- Feature engineering
+- Pipelines
+
+---
+
+### Heart Disease Prediction
+
+Skills learned
+
+- Classification
+- ROC
+- Precision
+- Recall
+
+---
+
+### Loan Approval
+
+Skills learned
+
+- Imbalanced data
+- Encoding
+- Pipelines
+
+---
+
+### Customer Churn
+
+Skills learned
+
+- Classification
+- Feature engineering
+- SHAP
+- Feature importance
+
+---
+
+### Sales Forecasting
+
+Skills learned
+
+- Time series basics
+- Feature creation
+
+---
+
+# Stage 4: Build Complete End-to-End Projects
+
+Don't stop after training the model.
+
+Instead
+
+```
+CSV
+ ↓
+EDA
+ ↓
+Cleaning
+ ↓
+Training
+ ↓
+Evaluation
+ ↓
+Save Model
+ ↓
+Flask/FastAPI
+ ↓
+React Frontend
+ ↓
+Docker
+ ↓
+Deploy
+```
+
+This is what companies expect.
+
+---
+
