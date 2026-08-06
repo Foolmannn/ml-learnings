@@ -225,3 +225,93 @@ This is what companies expect.
 
 ---
 
+# Stage 5: Learn Pipelines
+
+Instead of writing
+
+```python
+X = scaler.fit_transform(X)
+
+X = pca.fit_transform(X)
+
+model.fit(X, y)
+```
+
+Use
+
+```python
+Pipeline([
+    ("scaler", StandardScaler()),
+    ("pca", PCA()),
+    ("model", RandomForestClassifier())
+])
+```
+
+Then learn
+
+```
+ColumnTransformer
+
+Pipeline
+
+FeatureUnion
+
+GridSearchCV
+
+RandomizedSearchCV
+```
+
+---
+
+# Stage 6: Work on Feature Engineering
+
+This is where ML performance often improves the most.
+
+Practice
+
+- Missing values
+- Encoding
+- Scaling
+- Polynomial Features
+- Feature Selection
+- PCA
+- Feature Extraction
+- Binning
+- Outlier Removal
+- Datetime Features
+
+---
+
+# Stage 7: Hyperparameter Tuning
+
+Practice
+
+```
+GridSearchCV
+
+RandomSearchCV
+
+Optuna
+```
+
+Compare
+
+```
+Base Model
+
+↓
+
+Grid Search
+
+↓
+
+Random Search
+
+↓
+
+Optuna
+```
+
+Observe the improvements.
+
+---
