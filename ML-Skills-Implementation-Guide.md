@@ -315,3 +315,248 @@ Optuna
 Observe the improvements.
 
 ---
+
+# Stage 8: Learn Model Explainability
+
+Use
+
+```
+Permutation Importance
+
+Feature Importance
+
+SHAP
+
+LIME
+
+Partial Dependence Plot
+```
+
+This helps answer *why* a model made a prediction.
+
+---
+
+# Stage 9: Experiment Tracking
+
+Learn tools such as:
+
+- MLflow
+- Weights & Biases (W&B)
+- DVC (for data/model versioning)
+
+Track:
+
+- Parameters
+- Metrics
+- Models
+- Dataset versions
+
+---
+
+# Stage 10: Deploy Models
+
+Build an API.
+
+```
+Frontend
+
+↓
+
+FastAPI
+
+↓
+
+Trained Model (.pkl)
+
+↓
+
+Prediction
+
+↓
+
+Response
+```
+
+Then deploy using
+
+- Docker
+- Render
+- Railway
+- Azure
+- AWS
+- Google Cloud
+
+---
+
+# Stage 11: Reproduce Research Papers
+
+Pick simple papers and recreate them.
+
+Examples
+
+- House Price Prediction
+- Image Classification
+- Spam Detection
+- Sentiment Analysis
+
+This develops research and implementation skills.
+
+---
+
+# Stage 12: Participate in Kaggle Competitions
+
+Start with beginner competitions.
+
+Goals:
+
+- Improve leaderboard score.
+- Learn from public notebooks.
+- Compare approaches.
+- Read discussions.
+- Perform feature engineering.
+
+Winning is less important than learning.
+
+---
+
+# Stage 13: Create a GitHub Portfolio
+
+Each repository should include:
+
+```
+README
+
+Dataset
+
+Notebook
+
+requirements.txt
+
+Saved Model
+
+Inference Script
+
+Deployment
+
+Screenshots
+
+Documentation
+```
+
+A clean README explaining the problem, approach, results, and how to run the project makes your work much more valuable.
+
+---
+
+# Stage 14: Build Domain-Specific Projects
+
+Choose areas that interest you.
+
+### Finance
+
+- Stock prediction
+- Expense prediction
+- Credit scoring
+- Fraud detection
+
+Since you're building **MeroHisab**, you could add:
+
+- Monthly expense prediction
+- Budget recommendation
+- Spending category prediction
+- Expense anomaly detection
+- Cash flow forecasting
+
+### Healthcare
+
+- Disease prediction
+- Medical diagnosis
+
+### Retail
+
+- Customer segmentation
+- Recommendation systems
+
+### NLP
+
+- Chatbots
+- Sentiment analysis
+- Text classification
+
+### Computer Vision
+
+- Face recognition
+- Object detection
+
+---
+
+# Stage 15: Build Without Looking at Tutorials
+
+A good progression is:
+
+1. Watch a tutorial.
+2. Build the same project from memory.
+3. Change the dataset.
+4. Add one new feature.
+5. Improve the model.
+6. Deploy it.
+
+This is where real learning happens.
+
+---
+
+# A Practical 12-Project Roadmap
+
+| Project | Main Skills |
+|---------|-------------|
+| House Price Prediction | Regression, preprocessing |
+| Titanic Survival | Classification |
+| Heart Disease Prediction | Classification metrics |
+| Customer Churn | Feature engineering |
+| Loan Approval | Pipelines |
+| Spam Detection | NLP |
+| Movie Recommendation | Recommendation systems |
+| Sales Forecasting | Time series |
+| Customer Segmentation | Clustering |
+| Image Classification (CIFAR-10/MNIST) | Deep learning |
+| Sentiment Analysis | NLP |
+| MLOps Deployment | FastAPI, Docker, CI/CD |
+
+---
+
+# What Employers Look For
+
+By the time you finish, you should be able to:
+
+- Read and understand a dataset.
+- Perform exploratory data analysis (EDA).
+- Clean and preprocess data.
+- Engineer meaningful features.
+- Build and compare multiple models.
+- Evaluate models using appropriate metrics.
+- Tune hyperparameters.
+- Explain model decisions.
+- Build reusable pipelines.
+- Save and reload trained models.
+- Expose models through a FastAPI service.
+- Deploy an end-to-end ML application.
+- Communicate your work clearly through documentation and GitHub.
+
+---
+
+## Suggested Learning Path Based on Your Progress
+
+Given that you've already studied topics like **Linear Regression, Regression Metrics, PCA, Feature Extraction, and the Curse of Dimensionality**, a strong next sequence would be:
+
+1. Classification algorithms (Logistic Regression, KNN, Decision Trees, Random Forests)
+2. Ensemble methods (Bagging, Boosting, XGBoost, LightGBM)
+3. Complete preprocessing and feature engineering pipelines
+4. Hyperparameter tuning with GridSearchCV and Optuna
+5. Model explainability (SHAP, LIME)
+6. End-to-end deployment with FastAPI + Docker
+7. MLOps basics (MLflow, DVC, CI/CD)
+8. Deep Learning with PyTorch or TensorFlow
+
+This progression builds from solid machine learning fundamentals into production-ready ML systems, which is the skill set most software engineering and ML roles value.
+
+---
+Powered by [AI Exporter](https://saveai.net)
