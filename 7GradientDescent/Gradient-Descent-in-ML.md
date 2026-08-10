@@ -1,9 +1,6 @@
 > From: https://chatgpt.com/c/6a789ee9-2338-83e8-88c3-d14e9d098ce1
 
-
 ---
-
-# chatgpt response
 
 # Gradient Descent in Machine Learning
 
