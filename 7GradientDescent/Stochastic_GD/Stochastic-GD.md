@@ -942,3 +942,532 @@ X_scaled = scaler.fit_transform(X)
 ```
 
 ---
+
+# 20. Batch GD vs SGD vs Mini-Batch GD
+
+There are three important approaches.
+
+| Method | Samples per update | Updates per epoch | Noise |
+|---|---:|---:|---|
+| Batch GD | Entire dataset | 1 | Low |
+| SGD | 1 | $m$ | High |
+| Mini-Batch GD | Batch of $B$ | $m/B$ | Medium |
+
+Suppose:
+
+$$
+m=1000
+$$
+
+### Batch GD
+
+```text
+1000 samples → Update
+```
+
+Updates per epoch:
+
+$$
+1
+$$
+
+### SGD
+
+```text
+1 sample → Update
+```
+
+Updates per epoch:
+
+$$
+1000
+$$
+
+### Mini-Batch
+
+Suppose:
+
+$$
+B=32
+$$
+
+Then:
+
+```text
+32 samples → Update
+32 samples → Update
+32 samples → Update
+...
+```
+
+Approximately:
+
+$$
+\frac{1000}{32}\approx31.25
+$$
+
+updates per epoch.
+
+---
+
+# 21. Why Mini-Batch GD Became So Popular
+
+In modern deep learning, we generally don't use pure SGD in the strict one-example-at-a-time sense.
+
+Instead, we commonly use **mini-batches**.
+
+For example:
+
+```text
+Dataset
+   │
+   ├── Batch 1: 32 samples
+   ├── Batch 2: 32 samples
+   ├── Batch 3: 32 samples
+   └── ...
+```
+
+This provides a good compromise:
+
+```text
+Batch GD
+   │
+   │ low noise
+   │
+Mini-Batch GD
+   │
+   │ balance
+   │
+SGD
+   │
+   │ high noise
+```
+
+Mini-batch training also works very well with GPU hardware.
+
+---
+
+# 22. Important Terminology
+
+There is a subtle terminology issue.
+
+People often say:
+
+> "SGD" when they actually mean mini-batch stochastic gradient descent.
+
+For example, in deep learning you may see:
+
+```python
+optimizer = torch.optim.SGD(
+    model.parameters(),
+    lr=0.01
+)
+```
+
+The optimizer is called `SGD`, but the model may actually be trained using batches such as:
+
+```text
+batch_size = 32
+```
+
+Therefore, don't assume that the term `SGD` always means exactly one sample per update in practical deep-learning code.
+
+---
+
+# 23. SGD in Neural Networks
+
+SGD is especially important in neural-network training.
+
+Consider:
+
+```text
+Input
+  ↓
+Hidden Layer
+  ↓
+Hidden Layer
+  ↓
+Output
+```
+
+For each batch:
+
+```text
+Forward Pass
+     ↓
+Calculate Loss
+     ↓
+Backpropagation
+     ↓
+Calculate Gradients
+     ↓
+SGD Update
+```
+
+The update is conceptually:
+
+$$
+W:=W-\eta\frac{\partial L}{\partial W}
+$$
+
+and:
+
+$$
+b:=b-\eta\frac{\partial L}{\partial b}
+$$
+
+This happens repeatedly during training.
+
+---
+
+# 24. SGD With Momentum
+
+Pure SGD can be noisy.
+
+Momentum helps smooth the updates.
+
+Instead of:
+
+$$
+w:=w-\eta\nabla J
+$$
+
+we maintain a velocity:
+
+$$
+v_t=\beta v_{t-1}+\nabla J
+$$
+
+Then:
+
+$$
+w_t=w_{t-1}-\eta v_t
+$$
+
+where:
+
+$$
+\beta
+$$
+
+is usually close to $0.9$.
+
+Conceptually:
+
+```text
+SGD:
+
+↗ ↘ ↗ ↘ ↗ ↘
+
+
+Momentum SGD:
+
+↗
+  ↗
+    ↗
+      ↗
+        ↓
+```
+
+Momentum remembers the previous direction.
+
+---
+
+# 25. SGD vs Adam
+
+Another extremely important distinction:
+
+**SGD is an optimization algorithm.**
+
+Adam is also an optimization algorithm.
+
+Adam combines ideas related to:
+
+- momentum
+- adaptive learning rates
+
+Conceptually:
+
+```text
+SGD
+ │
+ ├── Basic SGD
+ │
+ └── SGD + Momentum
+
+
+Adaptive optimizers
+ │
+ ├── AdaGrad
+ ├── RMSProp
+ └── Adam
+```
+
+Adam often converges quickly and is widely used for neural networks.
+
+However, SGD with momentum can sometimes produce better generalization in certain deep-learning settings.
+
+So:
+
+> Faster optimization does not automatically mean better final model performance.
+
+---
+
+# 26. A Practical Training Example
+
+Suppose you are training a neural network to classify images.
+
+Dataset:
+
+$$
+50,000
+$$
+
+images.
+
+Batch size:
+
+$$
+32
+$$
+
+Then approximately:
+
+$$
+\frac{50,000}{32}=1562.5
+$$
+
+So there are roughly:
+
+$$
+1563
+$$
+
+updates per epoch.
+
+For 20 epochs:
+
+$$
+1563\times20\approx31,260
+$$
+
+optimization updates.
+
+The process looks like:
+
+```text
+Epoch 1
+ ├── Batch 1 → Forward → Loss → Backprop → Update
+ ├── Batch 2 → Forward → Loss → Backprop → Update
+ ├── Batch 3 → Forward → Loss → Backprop → Update
+ └── ...
+
+Epoch 2
+ ├── Batch 1
+ ├── Batch 2
+ └── ...
+
+...
+```
+
+---
+
+# 27. SGD and Convex vs Non-Convex Problems
+
+For simple linear regression with MSE, the loss function is convex.
+
+There is theoretically a single global minimum.
+
+For neural networks, the loss landscape is generally **non-convex**.
+
+There may be:
+
+- local minima
+- saddle points
+- flat regions
+- complex valleys
+
+SGD's noisy updates can be useful in navigating these landscapes.
+
+---
+
+# 28. Why the Noise Can Actually Help
+
+Imagine a very shallow local region:
+
+```text
+          ______
+        /        \
+_______/          \_______
+```
+
+A deterministic optimizer might settle into a problematic region.
+
+SGD's noisy gradients can provide enough movement to continue exploring.
+
+This doesn't mean:
+
+> "SGD always escapes every local minimum."
+
+Rather:
+
+> The stochasticity can sometimes help optimization explore the loss landscape.
+
+---
+
+# 29. Common Mistakes With SGD
+
+### Mistake 1: Using an excessively large learning rate
+
+```python
+learning_rate = 10
+```
+
+can cause divergence.
+
+---
+
+### Mistake 2: Not scaling features
+
+Gradient-based algorithms can perform poorly when feature scales differ dramatically.
+
+---
+
+### Mistake 3: Not shuffling training data
+
+Especially problematic when the dataset is ordered.
+
+---
+
+### Mistake 4: Assuming loss must decrease every iteration
+
+With SGD:
+
+```text
+Loss:
+
+1.20
+0.91
+1.03
+0.72
+0.81
+0.60
+0.66
+0.51
+```
+
+This is completely possible.
+
+Look at the overall trend rather than expecting monotonic improvement.
+
+---
+
+### Mistake 5: Confusing epoch and iteration
+
+If:
+
+```text
+1000 samples
+batch_size = 1
+```
+
+then approximately:
+
+```text
+1000 iterations = 1 epoch
+```
+
+If:
+
+```text
+batch_size = 100
+```
+
+then:
+
+```text
+10 iterations = 1 epoch
+```
+
+---
+
+# 30. The Core Formula to Remember
+
+For a general parameter $\theta$:
+
+$$
+\boxed{
+\theta_{t+1}
+=
+\theta_t
+-
+\eta
+\nabla_\theta J_i(\theta_t)
+}
+$$
+
+where:
+
+- $\theta$ = model parameters
+- $\eta$ = learning rate
+- $J_i$ = loss for one training sample
+- $\nabla_\theta J_i$ = gradient of that loss
+
+For linear regression:
+
+$$
+\boxed{
+w_{t+1}
+=
+w_t-\eta(\hat y_i-y_i)x_i
+}
+$$
+
+$$
+\boxed{
+b_{t+1}
+=
+b_t-\eta(\hat y_i-y_i)
+}
+$$
+
+These two equations are the heart of SGD for simple linear regression.
+
+---
+
+# 31. Big Picture
+
+You can remember the three versions like this:
+
+```text
+                 Gradient Descent
+                       │
+          ┌────────────┼────────────┐
+          │            │            │
+       Batch GD      SGD       Mini-Batch GD
+          │            │            │
+     All samples    1 sample    Small batch
+          │            │            │
+       Stable        Noisy       Balanced
+          │            │            │
+       Slow/large    Fast/cheap   Most practical
+       computation   updates      in deep learning
+```
+
+### The key intuition
+
+**Batch GD:**
+
+> "Look at everything, then make one decision."
+
+**SGD:**
+
+> "Look at one example, make a decision, then immediately update."
+
+**Mini-Batch GD:**
+
+> "Look at a small group of examples, make a decision, then update."
+
+For your ML progression, the next concepts that fit naturally after SGD are **Mini-Batch Gradient Descent → SGD with Momentum → AdaGrad → RMSProp → Adam**, because these show how modern optimizers solve the instability and learning-rate problems of basic SGD.
+
+---
