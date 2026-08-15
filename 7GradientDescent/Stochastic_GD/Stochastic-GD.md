@@ -633,3 +633,312 @@ Model update
 ```
 
 ---
+
+# 14. Disadvantages of SGD
+
+## 14.1 Noisy convergence
+
+The loss can fluctuate significantly.
+
+---
+
+## 14.2 Learning rate becomes very important
+
+If:
+
+$$
+\eta
+$$
+
+is too large:
+
+```text
+Minimum
+  ↑
+ / \
+/   \
+
+Updates:
+↗       ↘
+      ↗
+            ↘
+```
+
+The algorithm may overshoot the minimum.
+
+If it is too small:
+
+```text
+Very slow convergence
+```
+
+---
+
+## 14.3 Less computationally efficient per update
+
+Although each update is cheap, SGD performs many updates.
+
+---
+
+## 14.4 May never settle exactly at the minimum
+
+Because each individual sample generates a slightly different gradient, SGD can keep bouncing around the minimum.
+
+---
+
+# 15. Learning Rate in SGD
+
+The learning rate controls how large each update is.
+
+$$
+\theta_{new}
+=
+\theta_{old}
+-
+\eta\nabla J
+$$
+
+### Large learning rate
+
+```text
+        ↗
+      ↙
+    ↗
+  ↙
+```
+
+Can cause instability.
+
+### Small learning rate
+
+```text
+→ → → → → → → → → → 
+```
+
+Stable but slow.
+
+### Appropriate learning rate
+
+```text
+→
+  ↘
+    ↘
+      ↘
+        ●
+```
+
+Good convergence.
+
+---
+
+# 16. Learning Rate Scheduling
+
+Instead of keeping:
+
+$$
+\eta
+$$
+
+constant, we can reduce it during training.
+
+For example:
+
+$$
+\eta_t=\frac{\eta_0}{1+kt}
+$$
+
+where:
+
+- $\eta_0$ = initial learning rate
+- $k$ = decay parameter
+- $t$ = iteration
+
+Initially:
+
+```text
+Large steps
+```
+
+Later:
+
+```text
+Smaller steps
+```
+
+This can help SGD stabilize around the minimum.
+
+---
+
+# 17. SGD From Scratch in Python
+
+Let's implement SGD for linear regression.
+
+```python
+import numpy as np
+
+# Training data
+X = np.array([1, 2, 3, 4, 5], dtype=float)
+y = np.array([2, 4, 6, 8, 10], dtype=float)
+
+# Parameters
+w = 0.0
+b = 0.0
+
+learning_rate = 0.01
+epochs = 20
+
+n = len(X)
+
+for epoch in range(epochs):
+
+    # Shuffle indices
+    indices = np.random.permutation(n)
+
+    for i in indices:
+
+        x_i = X[i]
+        y_i = y[i]
+
+        # Prediction
+        y_pred = w * x_i + b
+
+        # Error
+        error = y_pred - y_i
+
+        # Gradients
+        dw = error * x_i
+        db = error
+
+        # Update parameters
+        w -= learning_rate * dw
+        b -= learning_rate * db
+
+    print(
+        f"Epoch {epoch + 1}: "
+        f"w={w:.4f}, b={b:.4f}"
+    )
+```
+
+Eventually you'll see $w$ move toward approximately:
+
+$$
+w\approx2
+$$
+
+and:
+
+$$
+b\approx0
+$$
+
+because the underlying relationship is:
+
+$$
+y=2x
+$$
+
+---
+
+# 18. SGD Using Scikit-Learn
+
+For linear models, scikit-learn provides `SGDRegressor`.
+
+```python
+import numpy as np
+from sklearn.linear_model import SGDRegressor
+
+X = np.array([
+    [1],
+    [2],
+    [3],
+    [4],
+    [5]
+])
+
+y = np.array([2, 4, 6, 8, 10])
+
+model = SGDRegressor(
+    learning_rate="constant",
+    eta0=0.01,
+    max_iter=1000,
+    random_state=42
+)
+
+model.fit(X, y)
+
+print("Weight:", model.coef_)
+print("Bias:", model.intercept_)
+```
+
+Prediction:
+
+```python
+prediction = model.predict([[6]])
+
+print(prediction)
+```
+
+The result should be close to:
+
+$$
+12
+$$
+
+---
+
+# 19. SGD and Feature Scaling
+
+Feature scaling is particularly important for gradient-based algorithms.
+
+Suppose:
+
+```text
+Feature 1: 1 → 10
+Feature 2: 10,000 → 100,000
+```
+
+The optimization landscape can become badly shaped.
+
+Without scaling:
+
+```text
+        ______
+      /        \
+     /          \
+    /            \
+   \              /
+    \____________/
+```
+
+The optimizer may zig-zag.
+
+After scaling:
+
+```text
+       _____
+     /       \
+    |    ●    |
+     \_______/
+```
+
+Optimization becomes easier.
+
+Common techniques:
+
+### Standardization
+
+$$
+x'=\frac{x-\mu}{\sigma}
+$$
+
+Using:
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_scaled = scaler.fit_transform(X)
+```
+
+---
