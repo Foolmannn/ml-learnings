@@ -952,3 +952,775 @@ Good predictions
 That's what we actually want.
 
 ---
+
+# 21. Training vs Validation vs Test
+
+A common ML workflow is:
+
+```text
+Dataset
+   │
+   ├───────────────┐
+   │               │
+Training          Test
+   │               │
+   │               │
+   ↓               ↓
+Train model     Final evaluation
+   │
+   ↓
+Validation
+```
+
+More commonly:
+
+```text
+Dataset
+   ↓
+Train/Test split
+   ↓
+Training set
+   ↓
+Cross-validation
+   ↓
+Model selection
+   ↓
+Final test set
+```
+
+The validation set helps decide:
+
+- model complexity
+- hyperparameters
+- regularization
+- feature choices
+
+The test set should ideally remain untouched until final evaluation.
+
+---
+
+# 22. Detecting Underfitting and Overfitting
+
+A very useful diagnostic table:
+
+| Situation | Training Error | Validation Error | Diagnosis |
+|---|---:|---:|---|
+| A | High | High | Underfitting |
+| B | Low | Low | Good |
+| C | Very Low | High | Overfitting |
+
+For example:
+
+### Case A
+
+```text
+Train RMSE = 80
+Validation RMSE = 85
+```
+
+Likely underfitting.
+
+---
+
+### Case B
+
+```text
+Train RMSE = 20
+Validation RMSE = 25
+```
+
+Good generalization.
+
+---
+
+### Case C
+
+```text
+Train RMSE = 2
+Validation RMSE = 70
+```
+
+Strong overfitting.
+
+---
+
+# 23. Regularization and Overfitting
+
+Regularization is one of the most important tools for controlling variance.
+
+Consider linear regression:
+
+$$
+\hat y = w_0+w_1x_1+w_2x_2+\cdots+w_nx_n
+$$
+
+Regularization adds a penalty for large weights.
+
+---
+
+# 24. Ridge Regression
+
+Ridge uses an L2 penalty:
+
+$$
+Loss =
+MSE+\lambda\sum_{j=1}^{n}w_j^2
+$$
+
+where:
+
+- $MSE$ = prediction error
+- $\lambda$ = regularization strength
+- $w_j$ = model coefficients
+
+As $\lambda$ increases:
+
+```text
+Regularization ↑
+      ↓
+Weights shrink
+      ↓
+Model complexity ↓
+      ↓
+Variance ↓
+      ↓
+Bias ↑
+```
+
+Therefore, regularization itself participates in the bias–variance trade-off.
+
+---
+
+# 25. Lasso Regression
+
+Lasso uses an L1 penalty:
+
+$$
+Loss =
+MSE+\lambda\sum_{j=1}^{n}|w_j|
+$$
+
+Lasso can force some coefficients to exactly zero.
+
+Therefore, it can perform a kind of feature selection.
+
+```text
+Feature 1 → coefficient = 2.5
+Feature 2 → coefficient = 0
+Feature 3 → coefficient = 1.2
+Feature 4 → coefficient = 0
+```
+
+Features 2 and 4 effectively become unused.
+
+---
+
+# 26. Decision Trees and Bias–Variance
+
+Decision trees provide an excellent example.
+
+### Shallow tree
+
+```python
+DecisionTreeRegressor(max_depth=2)
+```
+
+Potentially:
+
+```text
+Low complexity
+↓
+High bias
+↓
+Underfitting
+```
+
+---
+
+### Very deep tree
+
+```python
+DecisionTreeRegressor(max_depth=None)
+```
+
+Potentially:
+
+```text
+High complexity
+↓
+Low training error
+↓
+High variance
+↓
+Overfitting
+```
+
+---
+
+### Controlled tree
+
+```python
+DecisionTreeRegressor(max_depth=5)
+```
+
+May provide a better balance.
+
+The exact optimal depth depends on the dataset.
+
+---
+
+# 27. Random Forest and the Trade-off
+
+Random Forest is interesting because it combines many decision trees.
+
+Individual decision trees can have high variance.
+
+Random forests reduce this variance by averaging many trees.
+
+Conceptually:
+
+```text
+Tree 1 → prediction
+Tree 2 → prediction
+Tree 3 → prediction
+Tree 4 → prediction
+Tree 5 → prediction
+          ↓
+       Average
+          ↓
+      Final prediction
+```
+
+Averaging reduces the influence of individual noisy models.
+
+This is a major reason ensemble methods can generalize better.
+
+---
+
+# 28. Bagging vs Boosting
+
+Another useful connection:
+
+### Bagging
+
+Generally focuses strongly on reducing variance.
+
+Example:
+
+```text
+Random Forest
+```
+
+---
+
+### Boosting
+
+Sequentially builds models to correct previous errors.
+
+Examples:
+
+```text
+AdaBoost
+Gradient Boosting
+XGBoost
+LightGBM
+CatBoost
+```
+
+Boosting can reduce bias substantially, but if poorly controlled it can also overfit.
+
+So even ensemble algorithms are subject to the bias–variance trade-off.
+
+---
+
+# 29. Bias–Variance in KNN
+
+KNN gives a very intuitive example.
+
+Suppose:
+
+```python
+KNeighborsRegressor(n_neighbors=1)
+```
+
+With $k=1$:
+
+```text
+Very flexible
+↓
+Low bias
+↓
+High variance
+↓
+Potential overfitting
+```
+
+Now increase:
+
+```python
+n_neighbors=50
+```
+
+The model averages many nearby points:
+
+```text
+More smoothing
+↓
+Higher bias
+↓
+Lower variance
+↓
+Potential underfitting
+```
+
+Therefore:
+
+```text
+k small
+   ↓
+high variance
+low bias
+
+
+k large
+   ↓
+low variance
+high bias
+```
+
+---
+
+# 30. Bias–Variance Across Different Models
+
+| Model situation | Bias | Variance |
+|---|---:|---:|
+| Very simple linear model | High | Low |
+| Appropriate model | Moderate | Moderate |
+| Very complex polynomial | Low | High |
+| Shallow decision tree | High | Low |
+| Deep decision tree | Low | High |
+| KNN with small k | Low | High |
+| KNN with large k | High | Low |
+
+These are general tendencies, not absolute rules.
+
+---
+
+# 31. A Practical Example
+
+Suppose you're building a house-price prediction model.
+
+You try several models:
+
+```text
+Model A
+Linear Regression
+
+Model B
+Polynomial Regression degree 3
+
+Model C
+Polynomial Regression degree 20
+```
+
+Results:
+
+| Model | Train RMSE | Test RMSE |
+|---|---:|---:|
+| Linear | 100,000 | 105,000 |
+| Degree 3 | 45,000 | 50,000 |
+| Degree 20 | 5,000 | 180,000 |
+
+Interpretation:
+
+### Linear
+
+```text
+Train error = high
+Test error = high
+
+→ Underfitting
+→ High bias
+```
+
+### Degree 3
+
+```text
+Train error = reasonably low
+Test error = reasonably low
+
+→ Good generalization
+```
+
+### Degree 20
+
+```text
+Train error = extremely low
+Test error = extremely high
+
+→ Overfitting
+→ High variance
+```
+
+---
+
+# 32. Learning Curves
+
+Learning curves are another powerful diagnostic.
+
+Plot:
+
+```text
+Training error
+Validation error
+```
+
+against:
+
+```text
+Training set size
+```
+
+### Underfitting pattern
+
+Both training and validation errors remain relatively high and close together.
+
+```text
+Error
+│
+│──────────── Training
+│
+│──────────── Validation
+│
+└────────────────────────
+       Training size
+```
+
+The model has high bias.
+
+Adding more data may not solve the fundamental problem.
+
+You may need:
+
+- a more complex model
+- better features
+- less regularization
+
+---
+
+# 33. Overfitting Learning Curve
+
+Typically:
+
+```text
+Error
+│
+│\
+│ \ Training
+│  \________________
+│
+│       \___________ Validation
+│
+└────────────────────────
+       Training size
+```
+
+There is initially a large gap.
+
+More training data can often reduce variance and improve validation performance.
+
+---
+
+# 34. A Very Important Distinction
+
+Don't think:
+
+> "High training accuracy means good model."
+
+Instead ask:
+
+> **How does the model perform on unseen data?**
+
+The real objective is:
+
+$$
+\boxed{\text{Generalization}}
+$$
+
+not:
+
+$$
+\boxed{\text{Training Performance}}
+$$
+
+---
+
+# 35. Underfitting vs Overfitting: Complete Comparison
+
+| Property | Underfitting | Good Fit | Overfitting |
+|---|---|---|---|
+| Model complexity | Too low | Appropriate | Too high |
+| Bias | High | Moderate | Low |
+| Variance | Low | Moderate | High |
+| Training error | High | Low | Very low |
+| Validation error | High | Low | High |
+| Generalization | Poor | Good | Poor |
+| Main problem | Can't learn pattern | — | Learns noise |
+| Typical solution | Increase complexity | Keep | Reduce complexity |
+
+---
+
+# 36. The Most Important Mental Model
+
+Remember this sequence:
+
+```text
+                 MODEL COMPLEXITY
+                       →
+                       
+     Too Simple       Optimal        Too Complex
+          │              │                │
+          ↓              ↓                ↓
+       Bias HIGH       Balance         Bias LOW
+       Variance LOW    achieved       Variance HIGH
+          │                               │
+          ↓                               ↓
+    UNDERFITTING                    OVERFITTING
+          │                               │
+          └───────────┬───────────────────┘
+                      ↓
+             Poor Generalization
+```
+
+The goal is the middle.
+
+---
+
+# 37. How to Handle These Problems in Real ML Projects
+
+When your model isn't performing well, don't immediately change algorithms randomly.
+
+Follow a systematic approach.
+
+### Step 1 — Compare training and validation performance
+
+```python
+train_score = model.score(X_train, y_train)
+test_score = model.score(X_test, y_test)
+
+print(train_score)
+print(test_score)
+```
+
+---
+
+### Step 2 — Diagnose
+
+```text
+Train poor + Test poor
+        ↓
+Likely underfitting
+
+
+Train excellent + Test poor
+        ↓
+Likely overfitting
+
+
+Train good + Test good
+        ↓
+Good generalization
+```
+
+---
+
+### Step 3 — If underfitting
+
+Consider:
+
+```text
+More features
+More complex model
+Polynomial features
+Less regularization
+Longer training
+Better feature engineering
+```
+
+---
+
+### Step 4 — If overfitting
+
+Consider:
+
+```text
+Simpler model
+More training data
+Feature selection
+Regularization
+Cross-validation
+Early stopping
+Pruning
+Dropout
+Data augmentation
+```
+
+---
+
+# 38. One Important Warning
+
+Don't blindly increase model complexity because your training score is low.
+
+For example:
+
+```text
+Model 1 → R² train = 0.60
+Model 2 → R² train = 0.80
+Model 3 → R² train = 0.95
+Model 4 → R² train = 0.99
+```
+
+It does **not** mean Model 4 is best.
+
+You need:
+
+```text
+Training R²
++
+Validation R²
+```
+
+For example:
+
+| Model | Train R² | Validation R² |
+|---|---:|---:|
+| 1 | 0.60 | 0.58 |
+| 2 | 0.80 | 0.76 |
+| 3 | 0.95 | 0.84 |
+| 4 | 0.99 | 0.60 |
+
+Model 3 is clearly preferable here.
+
+---
+
+# 39. Connection to Your ML Learning
+
+Since you're working through **linear regression, polynomial regression, gradient descent, regularization, and model evaluation**, bias–variance is the concept that connects many of those topics.
+
+For example:
+
+```text
+Linear Regression
+       │
+       ↓
+Polynomial Regression
+       │
+       ↓
+Model Complexity
+       │
+       ├───────────────┐
+       ↓               ↓
+     Bias            Variance
+       │               │
+       ↓               ↓
+Underfitting       Overfitting
+       │               │
+       └───────┬───────┘
+               ↓
+      Bias–Variance Trade-off
+               ↓
+       Generalization
+```
+
+And then:
+
+```text
+Regularization
+     ↓
+Controls complexity
+     ↓
+Controls variance
+     ↓
+Improves generalization
+```
+
+This is why **polynomial regression + regularization + train/test evaluation** is such a good practical way to understand this topic.
+
+---
+
+# 40. Final Summary
+
+If you remember only these points, remember these:
+
+### Underfitting
+
+> **Model is too simple.**
+
+```text
+High Bias
+Low Variance
+Poor training performance
+Poor test performance
+```
+
+---
+
+### Overfitting
+
+> **Model is too complex and learns noise.**
+
+```text
+Low Bias
+High Variance
+Excellent training performance
+Poor test performance
+```
+
+---
+
+### Good Model
+
+> **Captures the underlying pattern without memorizing noise.**
+
+```text
+Reasonable Bias
+Reasonable Variance
+Good training performance
+Good test performance
+```
+
+---
+
+### Bias–Variance Trade-off
+
+$$
+\boxed{
+\text{Total Error}
+=
+\text{Bias}^2
++
+\text{Variance}
++
+\text{Irreducible Noise}
+}
+$$
+
+The central idea is:
+
+> **Increasing model complexity generally decreases bias but increases variance.**
+
+Therefore, the goal of ML is not to build the most complex model or the simplest model.
+
+It is to find the **appropriate level of complexity that gives the best generalization to unseen data.**
+
+```text
+                 BEST GENERALIZATION
+                         ▲
+                         │
+                         │
+Underfitting ────────────┼──────────── Overfitting
+   ↑                     │                 ↑
+   │                     │                 │
+High Bias            Sweet Spot       High Variance
+Too Simple           Appropriate      Too Complex
+```
