@@ -770,3 +770,694 @@ directly shrinks the weight.
 This is why L2 regularization is often called **weight decay**.
 
 ---
+
+# 21. L1 Gradient
+
+For Lasso:
+
+$$
+J(w)=MSE+\lambda|w|
+$$
+
+The derivative of $|w|$ is:
+
+$$
+\frac{d|w|}{dw}
+=
+\begin{cases}
++1 & w>0\\
+-1 & w<0
+\end{cases}
+$$
+
+At:
+
+$$
+w=0
+$$
+
+the ordinary derivative isn't defined, which leads to the use of **subgradients** and specialized optimization methods.
+
+The important intuition is:
+
+> L1 continually pushes coefficients toward zero and can make them exactly zero.
+
+---
+
+# 22. Regularization in Polynomial Regression
+
+This is particularly important when you're working with polynomial regression.
+
+Suppose:
+
+$$
+y=w_0+w_1x+w_2x^2+w_3x^3+\cdots+w_{20}x^{20}
+$$
+
+A degree-20 polynomial can easily overfit.
+
+You could reduce the polynomial degree:
+
+```python
+PolynomialFeatures(degree=20)
+```
+
+to:
+
+```python
+PolynomialFeatures(degree=5)
+```
+
+But another strategy is to keep the features and regularize the coefficients.
+
+For example:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.linear_model import Ridge
+
+model = Pipeline([
+    ("poly", PolynomialFeatures(degree=10)),
+    ("scaler", StandardScaler()),
+    ("ridge", Ridge(alpha=1.0))
+])
+```
+
+This is a very useful combination:
+
+$$
+\boxed{
+PolynomialFeatures + Scaling + Ridge
+}
+$$
+
+The polynomial model can remain expressive while Ridge prevents the coefficients from becoming excessively large.
+
+---
+
+# 23. Regularization vs Reducing Polynomial Degree
+
+These are different strategies.
+
+### Approach 1: Reduce degree
+
+```text
+degree = 3
+```
+
+You reduce model complexity directly.
+
+### Approach 2: Regularization
+
+```text
+degree = 20
+alpha = 10
+```
+
+You allow a complex feature space but discourage extreme coefficients.
+
+Conceptually:
+
+$$
+\text{Degree reduction}
+\rightarrow
+\text{remove complexity}
+$$
+
+while:
+
+$$
+\text{Regularization}
+\rightarrow
+\text{control complexity}
+$$
+
+---
+
+# 24. Other Regularization Techniques
+
+L1, L2, and Elastic Net are the major regularization methods for classical linear models, but regularization is a broader idea.
+
+Important techniques include:
+
+### 1. L1 Regularization
+
+Used in:
+
+- Lasso
+- Logistic Regression with L1 penalty
+- Neural networks
+
+Encourages sparsity.
+
+---
+
+### 2. L2 Regularization
+
+Used in:
+
+- Ridge
+- Logistic Regression
+- Neural networks
+
+Encourages smaller weights.
+
+---
+
+### 3. Elastic Net
+
+Combination of:
+
+$$
+L1+L2
+$$
+
+---
+
+### 4. Dropout
+
+Primarily used in neural networks.
+
+During training, randomly deactivate some neurons.
+
+For example:
+
+```text
+Original:
+
+Neuron → Neuron → Neuron → Neuron
+           ↓
+         Neuron
+
+
+With dropout:
+
+Neuron → X → Neuron → X
+```
+
+This prevents the network from becoming overly dependent on specific neurons.
+
+---
+
+### 5. Early Stopping
+
+Common in neural networks and iterative models.
+
+Stop training when validation performance stops improving.
+
+For example:
+
+```text
+Epoch 1     validation loss = 0.80
+Epoch 10    validation loss = 0.40
+Epoch 20    validation loss = 0.25
+Epoch 30    validation loss = 0.22
+Epoch 40    validation loss = 0.24
+```
+
+The model started getting worse after around epoch 30.
+
+So we stop around that point.
+
+This acts as a form of regularization.
+
+---
+
+### 6. Data Augmentation
+
+Common in deep learning, particularly computer vision.
+
+Instead of simply training on:
+
+```text
+Image A
+Image B
+Image C
+```
+
+create variations:
+
+```text
+Image A
+Image A rotated
+Image A flipped
+Image A cropped
+Image A slightly shifted
+```
+
+This encourages the model to learn general patterns instead of memorizing individual examples.
+
+---
+
+### 7. Tree Regularization
+
+Decision trees can overfit by becoming extremely deep.
+
+Regularization can be achieved through:
+
+```python
+DecisionTreeRegressor(
+    max_depth=5,
+    min_samples_split=10,
+    min_samples_leaf=5
+)
+```
+
+Important parameters include:
+
+- `max_depth`
+- `min_samples_split`
+- `min_samples_leaf`
+- `max_leaf_nodes`
+- pruning parameters
+
+---
+
+# 25. Regularization in Logistic Regression
+
+Regularization isn't limited to regression problems.
+
+Logistic Regression can also use L1/L2 regularization.
+
+For example:
+
+```python
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression(
+    penalty="l2",
+    C=1.0
+)
+```
+
+One important sklearn detail:
+
+$$
+\boxed{C=\frac{1}{\lambda}}
+$$
+
+So unlike Ridge's `alpha`, **larger `C` means weaker regularization**.
+
+Therefore:
+
+```text
+C ↓ → regularization ↑
+C ↑ → regularization ↓
+```
+
+This is an easy thing to accidentally reverse.
+
+---
+
+# 26. Hyperparameter Tuning
+
+The regularization strength is a **hyperparameter**.
+
+You normally shouldn't just choose:
+
+```python
+alpha=1
+```
+
+and assume it's optimal.
+
+Try several values.
+
+For example:
+
+```python
+alphas = [0.001, 0.01, 0.1, 1, 10, 100]
+```
+
+Then evaluate using cross-validation.
+
+```python
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import GridSearchCV
+
+params = {
+    "alpha": [0.001, 0.01, 0.1, 1, 10, 100]
+}
+
+grid = GridSearchCV(
+    Ridge(),
+    params,
+    cv=5,
+    scoring="r2"
+)
+
+grid.fit(X_train, y_train)
+
+print(grid.best_params_)
+```
+
+You might get:
+
+```text
+{'alpha': 10}
+```
+
+That suggests `alpha=10` performed best under the chosen cross-validation setup.
+
+---
+
+# 27. What Happens as Regularization Increases?
+
+Think of a graph of model complexity.
+
+### No regularization
+
+$$
+\lambda=0
+$$
+
+Potentially:
+
+```text
+Training error: very low
+Validation error: high
+```
+
+Overfitting.
+
+### Moderate regularization
+
+```text
+Training error: slightly higher
+Validation error: lower
+```
+
+Usually desirable.
+
+### Excessive regularization
+
+```text
+Training error: high
+Validation error: high
+```
+
+Underfitting.
+
+Conceptually:
+
+$$
+\boxed{
+\lambda=0
+\rightarrow
+\text{possible overfitting}
+}
+$$
+
+$$
+\boxed{
+\lambda=\text{optimal}
+\rightarrow
+\text{best generalization}
+}
+$$
+
+$$
+\boxed{
+\lambda\rightarrow\infty
+\rightarrow
+\text{underfitting}
+}
+$$
+
+---
+
+# 28. Important: Regularization Does NOT Mean "Always Better"
+
+Suppose ordinary Linear Regression gives:
+
+```text
+Train R² = 0.91
+Test R²  = 0.89
+```
+
+That's already a good generalization pattern.
+
+Adding strong regularization might give:
+
+```text
+Train R² = 0.70
+Test R²  = 0.68
+```
+
+You made the model worse.
+
+Regularization is mainly useful when the model has enough flexibility to overfit.
+
+---
+
+# 29. Regularization and Feature Scaling
+
+This deserves repeating because it's frequently missed.
+
+Suppose:
+
+$$
+x_1 = 0-1
+$$
+
+and:
+
+$$
+x_2 = 0-1,000,000
+$$
+
+Regularization penalizes coefficients, not the raw features.
+
+Therefore, coefficient magnitude becomes dependent on feature scale.
+
+Use:
+
+```python
+StandardScaler()
+```
+
+before L1/L2 regularization in most cases.
+
+A robust approach:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("regressor", Ridge(alpha=1))
+])
+```
+
+---
+
+# 30. Regularization and the Intercept
+
+Typically:
+
+$$
+\boxed{w_0\text{ is not regularized}}
+$$
+
+while:
+
+$$
+w_1,w_2,\ldots,w_n
+$$
+
+are regularized.
+
+Why?
+
+The intercept represents the baseline level of the target and isn't usually considered a measure of model complexity in the same way feature coefficients are.
+
+---
+
+# 31. Practical Comparison
+
+Suppose you're building a model with:
+
+```text
+100 features
+10,000 samples
+many correlated features
+some irrelevant features
+```
+
+A reasonable strategy could be:
+
+### Ridge
+
+Use when:
+
+- Most features might be useful.
+- Features are correlated.
+- You primarily want coefficient shrinkage.
+
+### Lasso
+
+Use when:
+
+- You expect many irrelevant features.
+- You want automatic feature selection.
+- A sparse model is desirable.
+
+### Elastic Net
+
+Use when:
+
+- You have many features.
+- Many are correlated.
+- You also want feature selection.
+
+---
+
+# 32. A Complete Example
+
+Here's a typical workflow:
+
+```python
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.metrics import r2_score
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42
+)
+
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("ridge", Ridge())
+])
+
+params = {
+    "ridge__alpha": [0.001, 0.01, 0.1, 1, 10, 100]
+}
+
+grid = GridSearchCV(
+    pipeline,
+    params,
+    cv=5,
+    scoring="r2"
+)
+
+grid.fit(X_train, y_train)
+
+pred = grid.predict(X_test)
+
+print("Best alpha:", grid.best_params_)
+print("Test R²:", r2_score(y_test, pred))
+```
+
+The workflow is:
+
+$$
+\boxed{
+Data
+\rightarrow
+Train/Test Split
+\rightarrow
+Scaling
+\rightarrow
+Regularization
+\rightarrow
+Cross-validation
+\rightarrow
+Hyperparameter Selection
+\rightarrow
+Test Evaluation
+}
+$$
+
+---
+
+# 33. The Most Important Mental Model
+
+Think of machine learning optimization as having two competing objectives.
+
+### Objective 1 — Fit the data
+
+$$
+\text{Minimize prediction error}
+$$
+
+### Objective 2 — Keep the model simple
+
+$$
+\text{Minimize parameter complexity}
+$$
+
+Regularization combines them:
+
+$$
+\boxed{
+Total\ Loss
+=
+Data\ Loss
++
+\lambda(\text{Complexity})
+}
+$$
+
+The model therefore asks:
+
+> "How can I fit the data reasonably well without using unnecessarily complicated parameters?"
+
+That's the fundamental idea behind regularization.
+
+---
+
+# 34. Final Cheat Sheet
+
+| Technique | Penalty | Main effect | Feature selection |
+|---|---|---|---|
+| **Ridge** | $L2=\sum w^2$ | Shrinks weights | ❌ |
+| **Lasso** | $L1=\sum|w|$ | Shrinks weights | ✅ |
+| **Elastic Net** | $L1+L2$ | Shrinks + sparse | ✅ |
+| **Dropout** | Random neuron removal | Reduces NN co-adaptation | — |
+| **Early Stopping** | Stop training early | Prevents over-training | — |
+| **Tree constraints** | Depth/leaf restrictions | Controls tree complexity | — |
+| **Data Augmentation** | More varied training data | Improves generalization | — |
+
+### Remember these three equations
+
+**Ridge:**
+
+$$
+\boxed{MSE+\lambda\sum w_j^2}
+$$
+
+**Lasso:**
+
+$$
+\boxed{MSE+\lambda\sum|w_j|}
+$$
+
+**Elastic Net:**
+
+$$
+\boxed{MSE+\lambda_1\sum|w_j|+\lambda_2\sum w_j^2}
+$$
+
+And the easiest memory trick:
+
+$$
+\boxed{\text{Ridge → Shrinks}}
+$$
+
+$$
+\boxed{\text{Lasso → Shrinks + Selects}}
+$$
+
+$$
+\boxed{\text{Elastic Net → Both}}
+$$
+
+One especially useful next step for your ML progression is to understand **why L1 produces exact zeros while L2 generally doesn't**, using the geometric constraint and gradient/subgradient view. That makes Ridge vs. Lasso much easier to remember rather than memorizing their formulas.
