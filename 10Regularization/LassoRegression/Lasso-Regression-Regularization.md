@@ -1000,3 +1000,438 @@ That feature is not being used by the fitted Lasso model.
 ```
 
 ---
+
+# 25. Very large alpha
+
+Consider:
+
+```python
+Lasso(alpha=100000)
+```
+
+The penalty is extremely strong.
+
+The model may force almost all coefficients toward zero.
+
+Eventually, you can get something like:
+
+```text
+coef_ = [0, 0, 0, 0, 0]
+```
+
+Then the model essentially predicts using the intercept.
+
+This is extreme regularization and usually means the model is underfitting.
+
+---
+
+# 26. Very small alpha
+
+For example:
+
+```python
+Lasso(alpha=0.000001)
+```
+
+The penalty is extremely weak.
+
+The model behaves much more like ordinary Linear Regression.
+
+Therefore:
+
+```text
+alpha ≈ 0
+       ↓
+Linear Regression-like behavior
+```
+
+---
+
+# 27. Lasso and sparse models
+
+A model is called **sparse** when many of its coefficients are zero.
+
+Example:
+
+```text
+100 features
+
+Coefficient vector:
+
+[2.4, 0, 0, 1.8, 0, 0, 0,
+ 3.1, 0, 0, 0, -2.2, 0, ...]
+```
+
+Most coefficients are zero.
+
+Lasso is therefore especially useful when you believe:
+
+> Only a relatively small number of features are actually important.
+
+---
+
+# 28. When should you use Lasso?
+
+Lasso is particularly useful when:
+
+### 1. You have many features
+
+For example:
+
+$$
+p=10,000
+$$
+
+but only a few are genuinely useful.
+
+### 2. You want feature selection
+
+You want the model itself to identify potentially useful features.
+
+### 3. You want interpretability
+
+A model with:
+
+```text
+10 active features
+```
+
+is easier to understand than one with:
+
+```text
+500 active features
+```
+
+### 4. You want a sparse model
+
+Lasso naturally produces sparse coefficients.
+
+---
+
+# 29. When should you avoid relying only on Lasso?
+
+Lasso isn't always the best choice.
+
+If many features are highly correlated:
+
+```text
+X1 ── strongly correlated ── X2
+X2 ── strongly correlated ── X3
+X3 ── strongly correlated ── X4
+```
+
+Lasso may arbitrarily keep one and eliminate others.
+
+In such situations, consider:
+
+> **Elastic Net**
+
+because the L2 component can stabilize correlated predictors.
+
+---
+
+# 30. Ridge vs Lasso intuition
+
+Imagine 10 features.
+
+### Ridge:
+
+```text
+X1 → 2.1
+X2 → 1.5
+X3 → 0.8
+X4 → 0.3
+X5 → 0.2
+...
+```
+
+Most remain in the model.
+
+### Lasso:
+
+```text
+X1 → 2.8
+X2 → 1.2
+X3 → 0
+X4 → 0
+X5 → 0
+...
+```
+
+Some disappear.
+
+Therefore:
+
+> **Ridge = shrink everything**
+
+> **Lasso = shrink + potentially eliminate**
+
+---
+
+# 31. Regularization family
+
+You should organize the concepts like this:
+
+```text
+Linear Regression
+       │
+       ├── No regularization
+       │
+       └── Regularization
+              │
+              ├── Ridge
+              │      └── L2
+              │
+              ├── Lasso
+              │      └── L1
+              │
+              └── Elastic Net
+                     ├── L1
+                     └── L2
+```
+
+---
+
+# 32. One important distinction: Regularization is not feature engineering
+
+Suppose you start with:
+
+```text
+Age
+Salary
+Experience
+Education
+```
+
+Feature engineering might create:
+
+```text
+Age²
+Salary / Experience
+Age × Experience
+```
+
+Regularization does something different.
+
+It takes the features you already have and controls their coefficients.
+
+So:
+
+```text
+Feature Engineering
+→ creates/transforms features
+
+Regularization
+→ controls model complexity
+```
+
+They are complementary techniques.
+
+---
+
+# 33. Regularization and train/test performance
+
+Suppose:
+
+### Linear Regression
+
+```text
+Training R² = 0.98
+Testing R²  = 0.65
+```
+
+This could indicate overfitting.
+
+After appropriate Lasso regularization:
+
+```text
+Training R² = 0.90
+Testing R²  = 0.82
+```
+
+Notice:
+
+> Training performance became worse, but test performance improved.
+
+That's completely okay.
+
+The objective isn't to maximize training performance.
+
+It's to achieve good **generalization**.
+
+---
+
+# 34. Common mistakes
+
+### Mistake 1: Thinking higher alpha always means better
+
+No.
+
+Too high:
+
+$$
+\rightarrow \text{underfitting}
+$$
+
+Too low:
+
+$$
+\rightarrow \text{potential overfitting}
+$$
+
+Use cross-validation.
+
+---
+
+### Mistake 2: Forgetting scaling
+
+For Lasso, feature scaling is generally important.
+
+Use:
+
+```python
+StandardScaler()
+```
+
+before Lasso, preferably inside a `Pipeline`.
+
+---
+
+### Mistake 3: Thinking zero coefficient means the feature is universally useless
+
+Not necessarily.
+
+It means:
+
+> Under this dataset, model specification, preprocessing, and chosen regularization strength, Lasso assigned that feature a zero coefficient.
+
+A different dataset or alpha could produce a different result.
+
+---
+
+### Mistake 4: Comparing coefficients before scaling
+
+A coefficient of:
+
+```text
+0.5
+```
+
+and another of:
+
+```text
+500
+```
+
+cannot necessarily be compared directly if the features have different units.
+
+---
+
+# 35. The complete mental model
+
+Remember this:
+
+```text
+                 Linear Regression
+                        │
+                        │
+                 Add regularization
+                        │
+            ┌───────────┴───────────┐
+            │                       │
+          Ridge                   Lasso
+            │                       │
+           L2                      L1
+            │                       │
+      β² penalty                |β| penalty
+            │                       │
+   Shrinks coefficients       Shrinks coefficients
+            │                       │
+   Usually non-zero           Can become exactly 0
+                                    │
+                                    ↓
+                              Feature Selection
+```
+
+---
+
+# 36. The most important formulas
+
+### Ordinary Linear Regression
+
+$$
+\boxed{
+J=\sum(y_i-\hat y_i)^2
+}
+$$
+
+### Ridge
+
+$$
+\boxed{
+J=
+\sum(y_i-\hat y_i)^2
++
+\lambda\sum_j\beta_j^2
+}
+$$
+
+### Lasso
+
+$$
+\boxed{
+J=
+\sum(y_i-\hat y_i)^2
++
+\lambda\sum_j|\beta_j|
+}
+$$
+
+### Elastic Net
+
+$$
+\boxed{
+J=
+MSE+
+\lambda
+\left[
+\alpha\sum|\beta_j|
++
+(1-\alpha)\sum\beta_j^2
+\right]
+}
+$$
+
+---
+
+# 37. Final comparison
+
+| | Linear Regression | Ridge | Lasso | Elastic Net |
+|---|---|---|---|---|
+| Regularization | ❌ | L2 | L1 | L1 + L2 |
+| Shrinks coefficients | ❌ | ✅ | ✅ | ✅ |
+| Zero coefficients | ❌ | Usually ❌ | ✅ | ✅ |
+| Feature selection | ❌ | ❌ | ✅ | ✅ |
+| Good with multicollinearity | ❌ | ✅ | ⚠️ | ✅ |
+| Sparse model | ❌ | ❌ | ✅ | ✅ |
+| Main hyperparameter | — | alpha | alpha | alpha + l1_ratio |
+
+---
+
+## The one-sentence intuition
+
+> **Lasso Regression minimizes prediction error while penalizing the absolute size of coefficients, causing coefficients to shrink and potentially become exactly zero—thereby performing automatic feature selection.**
+
+And the key distinction to memorize for your ML studies is:
+
+$$
+\boxed{\text{Ridge = L2 = shrink}}
+$$
+
+$$
+\boxed{\text{Lasso = L1 = shrink + feature selection}}
+$$
+
+$$
+\boxed{\text{Elastic Net = L1 + L2 = feature selection + stability}}
+$$
