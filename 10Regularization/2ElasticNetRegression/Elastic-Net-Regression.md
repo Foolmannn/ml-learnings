@@ -877,3 +877,463 @@ So:
 ```
 
 ---
+
+# 22. Using StandardScaler + ElasticNet
+
+A better practical implementation is:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import ElasticNet
+
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("elasticnet", ElasticNet(
+        alpha=0.1,
+        l1_ratio=0.5
+    ))
+])
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+```
+
+This prevents preprocessing leakage and keeps scaling and modeling together.
+
+---
+
+# 23. Choosing alpha and l1_ratio
+
+Don't normally choose these randomly.
+
+Use **cross-validation**.
+
+For example:
+
+```python
+from sklearn.linear_model import ElasticNetCV
+
+model = ElasticNetCV(
+    alphas=[0.001, 0.01, 0.1, 1, 10],
+    l1_ratio=[0.1, 0.3, 0.5, 0.7, 0.9],
+    cv=5
+)
+
+model.fit(X_train, y_train)
+
+print(model.alpha_)
+print(model.l1_ratio_)
+```
+
+The model evaluates different combinations and selects a good one based on cross-validation.
+
+---
+
+# 24. What happens when l1_ratio changes?
+
+Imagine:
+
+```text
+l1_ratio = 0
+```
+
+Then:
+
+```text
+100% L2
+```
+
+Approximately Ridge.
+
+---
+
+```text
+l1_ratio = 0.25
+```
+
+```text
+25% L1
+75% L2
+```
+
+---
+
+```text
+l1_ratio = 0.5
+```
+
+```text
+50% L1
+50% L2
+```
+
+---
+
+```text
+l1_ratio = 0.75
+```
+
+```text
+75% L1
+25% L2
+```
+
+---
+
+```text
+l1_ratio = 1
+```
+
+```text
+100% L1
+```
+
+Approximately Lasso.
+
+So:
+
+$$
+\boxed{
+l1\_ratio=0 \rightarrow Ridge
+}
+$$
+
+$$
+\boxed{
+l1\_ratio=1 \rightarrow Lasso
+}
+$$
+
+and everything between them is Elastic Net.
+
+---
+
+# 25. What happens when regularization becomes stronger?
+
+Suppose:
+
+```text
+alpha = 0.001
+```
+
+Coefficients may look like:
+
+```text
+X1 → 4.8
+X2 → 3.9
+X3 → 1.7
+X4 → -2.4
+X5 → 0.4
+```
+
+Increase regularization:
+
+```text
+alpha = 0.1
+```
+
+Perhaps:
+
+```text
+X1 → 4.1
+X2 → 3.4
+X3 → 1.1
+X4 → -1.8
+X5 → 0
+```
+
+Increase further:
+
+```text
+alpha = 1
+```
+
+Perhaps:
+
+```text
+X1 → 2.2
+X2 → 1.6
+X3 → 0
+X4 → -0.7
+X5 → 0
+```
+
+So generally:
+
+$$
+\boxed{
+\text{Regularization strength}\uparrow
+\Rightarrow
+|\beta_j|\downarrow
+}
+$$
+
+and with an L1 component, more coefficients can become exactly zero.
+
+---
+
+# 26. Bias-variance perspective
+
+Regularization introduces some bias in exchange for reducing variance.
+
+Without regularization:
+
+```text
+Low bias
+High variance
+```
+
+With appropriate Elastic Net:
+
+```text
+Slightly higher bias
+Much lower variance
+```
+
+Therefore:
+
+$$
+\boxed{
+\text{Good regularization}
+\Rightarrow
+\text{better generalization}
+}
+$$
+
+The goal isn't to make coefficients as small as possible.
+
+The goal is to find the regularization strength that gives the **best validation/test performance**.
+
+---
+
+# 27. Important distinction: coefficient shrinkage ≠ feature importance
+
+Suppose Elastic Net gives:
+
+```text
+Age          0.82
+Income       1.91
+Experience   0
+```
+
+It does **not automatically mean**:
+
+```text
+Age is more important than Income
+```
+
+because coefficient magnitude depends on:
+
+- Feature scaling
+- Units
+- Correlation between features
+- Regularization
+
+If features are standardized, coefficient magnitudes are more comparable, but they still need careful interpretation.
+
+---
+
+# 28. Elastic Net and multicollinearity
+
+Imagine:
+
+$$
+X_1 \approx X_2 \approx X_3
+$$
+
+This causes multicollinearity.
+
+Ordinary Linear Regression might produce:
+
+```text
+X1 = 100
+X2 = -95
+X3 = 80
+```
+
+Even though predictions may be reasonable, coefficients are unstable.
+
+Ridge helps by shrinking these coefficients.
+
+Lasso can select one:
+
+```text
+X1 = 5
+X2 = 0
+X3 = 0
+```
+
+Elastic Net can produce something more like:
+
+```text
+X1 = 2.1
+X2 = 1.9
+X3 = 2.0
+```
+
+This can be more stable when the correlated variables collectively represent useful information.
+
+---
+
+# 29. A simple mental model
+
+Remember Elastic Net using this:
+
+```text
+                    Elastic Net
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+             L1                    L2
+              │                     │
+              ↓                     ↓
+          Lasso behavior       Ridge behavior
+              │                     │
+              ↓                     ↓
+       Feature selection       Shrink coefficients
+       Sparse model            Handle correlation
+              │                     │
+              └──────────┬──────────┘
+                         ↓
+               Stable sparse model
+```
+
+---
+
+# 30. The three models together
+
+The easiest comparison:
+
+```text
+Linear Regression
+       │
+       │ + L2
+       ↓
+     Ridge
+       │
+       │ + L1
+       ↓
+  Elastic Net
+       │
+       │ L1 dominates
+       ↓
+     Lasso
+```
+
+More accurately:
+
+```text
+                    L1
+                     ↑
+                     │
+                  Lasso
+                     │
+                     │
+            Elastic Net
+                     │
+                     │
+                  Ridge
+                     │
+                     ↓
+                    L2
+```
+
+---
+
+# 31. The most important formulas to remember
+
+### Linear Regression
+
+$$
+\boxed{RSS}
+$$
+
+---
+
+### Ridge
+
+$$
+\boxed{
+RSS+\lambda\sum\beta_j^2
+}
+$$
+
+---
+
+### Lasso
+
+$$
+\boxed{
+RSS+\lambda\sum|\beta_j|
+}
+$$
+
+---
+
+### Elastic Net
+
+$$
+\boxed{
+RSS+
+\lambda
+\left[
+\alpha\sum|\beta_j|
++
+(1-\alpha)\sum\beta_j^2
+\right]
+}
+$$
+
+The conceptual progression is:
+
+$$
+\boxed{
+Linear
+\rightarrow
+Ridge
+\rightarrow
+Lasso
+\rightarrow
+Elastic\ Net
+}
+$$
+
+But Elastic Net is not simply "after" Ridge/Lasso—it **combines both regularization mechanisms**.
+
+---
+
+# 32. Interview-level answer
+
+If an interviewer asks:
+
+> **What is Elastic Net Regression?**
+
+A strong answer would be:
+
+> Elastic Net is a regularized linear regression technique that combines L1 and L2 regularization. The L1 component encourages sparsity and performs feature selection by driving some coefficients exactly to zero, while the L2 component stabilizes the model and handles multicollinearity, especially when features are highly correlated. The relative contribution of L1 and L2 is controlled by `l1_ratio`, while the overall regularization strength is controlled by `alpha` in scikit-learn.
+
+---
+
+## Final cheat sheet
+
+| Concept | Meaning |
+|---|---|
+| Elastic Net | Linear Regression + L1 + L2 |
+| L1 | Feature selection / sparsity |
+| L2 | Shrinkage / stability |
+| `alpha` in sklearn | Overall regularization strength |
+| `l1_ratio` in sklearn | L1 vs L2 balance |
+| `l1_ratio = 1` | Lasso-like |
+| `l1_ratio = 0` | Ridge-like |
+| Large alpha | Stronger regularization |
+| Small alpha | Weaker regularization |
+| Scaling | Usually important |
+| Cross-validation | Used to tune hyperparameters |
+| Major advantage | Handles correlated features while allowing sparsity |
+| Main use case | High-dimensional + correlated features |
+
+**One sentence to remember:**
+
+> **Elastic Net gives you Lasso's ability to eliminate features and Ridge's ability to stabilize correlated features.**
