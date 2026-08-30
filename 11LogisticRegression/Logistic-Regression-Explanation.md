@@ -964,3 +964,618 @@ from sklearn.preprocessing import StandardScaler
 ```
 
 ---
+
+# 26. Logistic Regression in Scikit-Learn
+
+Simple binary classification:
+
+```python
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression()
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+```
+
+For probabilities:
+
+```python
+y_prob = model.predict_proba(X_test)
+```
+
+For a binary classifier:
+
+```python
+y_prob[:, 1]
+```
+
+contains the probability of class 1.
+
+---
+
+# 27. Complete Example
+
+```python
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+model = LogisticRegression()
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+```
+
+Notice the important rule:
+
+```python
+scaler.fit_transform(X_train)
+scaler.transform(X_test)
+```
+
+Do **not** fit the scaler separately on the test set.
+
+---
+
+# 28. `predict()` vs `predict_proba()`
+
+This distinction is very important.
+
+### `predict()`
+
+Returns the final class:
+
+```python
+model.predict(X_test)
+```
+
+Example:
+
+```text
+[0, 1, 1, 0, 1]
+```
+
+### `predict_proba()`
+
+Returns probabilities:
+
+```python
+model.predict_proba(X_test)
+```
+
+Example:
+
+```text
+[[0.80, 0.20],
+ [0.10, 0.90],
+ [0.25, 0.75]]
+```
+
+Each row is:
+
+```text
+[P(class 0), P(class 1)]
+```
+
+---
+
+# 29. Changing the Classification Threshold
+
+The default threshold is typically:
+
+$$
+0.5
+$$
+
+But you can choose another threshold.
+
+```python
+y_prob = model.predict_proba(X_test)[:, 1]
+
+y_pred = (y_prob >= 0.7).astype(int)
+```
+
+Now:
+
+$$
+P(y=1)\ge0.7
+$$
+
+is required to classify an observation as class 1.
+
+This can be extremely useful for:
+
+- fraud detection
+- medical screening
+- spam detection
+- anomaly detection
+
+because the costs of false positives and false negatives may differ.
+
+---
+
+# 30. Confusion Matrix
+
+For binary classification:
+
+| | Predicted 0 | Predicted 1 |
+|---|---:|---:|
+| Actual 0 | TN | FP |
+| Actual 1 | FN | TP |
+
+Where:
+
+- **TP** = True Positive
+- **TN** = True Negative
+- **FP** = False Positive
+- **FN** = False Negative
+
+---
+
+# 31. Accuracy
+
+$$
+Accuracy=
+\frac{TP+TN}
+{TP+TN+FP+FN}
+$$
+
+Accuracy answers:
+
+> How many predictions were correct overall?
+
+But accuracy can be misleading with imbalanced data.
+
+Example:
+
+```text
+1000 transactions
+990 legitimate
+10 fraud
+```
+
+A model predicting everything as legitimate gets:
+
+$$
+99\%
+$$
+
+accuracy.
+
+Yet it detects:
+
+$$
+0
+$$
+
+fraud cases.
+
+---
+
+# 32. Precision
+
+$$
+Precision=
+\frac{TP}{TP+FP}
+$$
+
+It answers:
+
+> Of everything predicted positive, how much was actually positive?
+
+High precision means fewer false positives.
+
+Useful when false alarms are expensive.
+
+---
+
+# 33. Recall
+
+$$
+Recall=
+\frac{TP}{TP+FN}
+$$
+
+It answers:
+
+> Of all actual positive cases, how many did we find?
+
+High recall means fewer false negatives.
+
+Important in things like disease screening and fraud detection.
+
+---
+
+# 34. F1 Score
+
+$$
+F1=
+2\frac{Precision\cdot Recall}
+{Precision+Recall}
+$$
+
+It balances precision and recall.
+
+F1 is particularly useful when:
+
+- classes are imbalanced
+- both FP and FN matter
+
+---
+
+# 35. ROC Curve
+
+The ROC curve plots:
+
+$$
+TPR
+$$
+
+against:
+
+$$
+FPR
+$$
+
+where:
+
+$$
+TPR=\frac{TP}{TP+FN}
+$$
+
+and:
+
+$$
+FPR=\frac{FP}{FP+TN}
+$$
+
+Different probability thresholds produce different points on the curve.
+
+---
+
+# 36. AUC
+
+AUC means **Area Under the ROC Curve**.
+
+Generally:
+
+```text
+AUC ≈ 1.0 → excellent discrimination
+AUC ≈ 0.5 → random-like discrimination
+AUC < 0.5 → worse than random
+```
+
+AUC evaluates how well the model **ranks positive examples above negative examples across thresholds**.
+
+---
+
+# 37. Regularization
+
+Logistic Regression often uses regularization to prevent overfitting.
+
+Two major types are:
+
+### L1 Regularization
+
+Also called **Lasso**.
+
+$$
+Loss + \lambda\sum_j|w_j|
+$$
+
+It can make some coefficients exactly zero.
+
+Therefore:
+
+```text
+Feature A → 2.4
+Feature B → 0
+Feature C → -1.7
+Feature D → 0
+```
+
+This can perform feature selection.
+
+---
+
+### L2 Regularization
+
+Also called **Ridge**.
+
+$$
+Loss+\lambda\sum_jw_j^2
+$$
+
+It shrinks coefficients toward zero but typically does not make them exactly zero.
+
+---
+
+# 38. Logistic Regression Regularization in sklearn
+
+This:
+
+```python
+model = LogisticRegression()
+```
+
+uses regularization by default in standard scikit-learn usage.
+
+The `C` parameter controls inverse regularization strength:
+
+$$
+C=\frac{1}{\lambda}
+$$
+
+Therefore:
+
+```text
+Small C → stronger regularization
+Large C → weaker regularization
+```
+
+Example:
+
+```python
+LogisticRegression(C=0.1)
+```
+
+has stronger regularization than:
+
+```python
+LogisticRegression(C=10)
+```
+
+---
+
+# 39. Multiclass Logistic Regression
+
+Logistic Regression is not limited to:
+
+```text
+0 vs 1
+```
+
+It can also classify:
+
+```text
+Cat
+Dog
+Horse
+```
+
+There are common approaches:
+
+### One-vs-Rest (OvR)
+
+Train:
+
+```text
+Cat vs all
+Dog vs all
+Horse vs all
+```
+
+Then choose the strongest score.
+
+### Multinomial Logistic Regression
+
+The model directly estimates probabilities across all classes using the **softmax function**.
+
+For class $k$:
+
+$$
+P(y=k|X)
+=
+\frac{e^{z_k}}
+{\sum_j e^{z_j}}
+$$
+
+Unlike sigmoid, softmax produces probabilities across multiple mutually exclusive classes whose sum is 1.
+
+---
+
+# 40. Logistic Regression vs Linear Regression
+
+| Property | Linear Regression | Logistic Regression |
+|---|---|---|
+| Main task | Regression | Classification |
+| Output | Continuous | Probability |
+| Activation | None | Sigmoid |
+| Typical target | Numeric | Categorical |
+| Loss | MSE commonly | Log Loss |
+| Boundary | N/A | Linear |
+| Output range | $-\infty,\infty$ | 0–1 |
+| Example | House price | Spam detection |
+
+---
+
+# 41. Logistic Regression vs Decision Tree
+
+| Property | Logistic Regression | Decision Tree |
+|---|---|---|
+| Type | Linear model | Tree model |
+| Boundary | Linear | Nonlinear |
+| Interpretability | High | High |
+| Feature scaling | Often useful | Usually unnecessary |
+| Handles nonlinear relationships | Poorly without feature engineering | Well |
+| Probability output | Yes | Yes |
+| Overfitting control | Regularization | Depth/pruning/etc. |
+
+---
+
+# 42. Logistic Regression vs Random Forest
+
+Logistic Regression:
+
+```text
+simple
+fast
+interpretable
+linear boundary
+```
+
+Random Forest:
+
+```text
+nonlinear
+more flexible
+handles feature interactions naturally
+usually less interpretable
+```
+
+A good practical approach is often to start with Logistic Regression as a **strong baseline**.
+
+---
+
+# 43. Assumptions of Logistic Regression
+
+Logistic Regression has several important assumptions.
+
+### 1. Binary/multiclass target
+
+The target should represent appropriate categorical outcomes.
+
+### 2. Independent observations
+
+Observations should generally be independent.
+
+### 3. Linear relationship with log-odds
+
+This is very important.
+
+Logistic Regression does **not** assume that:
+
+$$
+X \rightarrow P(Y=1)
+$$
+
+is linear.
+
+It assumes:
+
+$$
+X \rightarrow \log\left(\frac{p}{1-p}\right)
+$$
+
+is linear.
+
+### 4. No severe multicollinearity
+
+Highly correlated predictors can make coefficient estimates unstable.
+
+### 5. Sufficient sample information
+
+Very small or sparse datasets can create unstable estimates.
+
+---
+
+# 44. Multicollinearity
+
+Suppose:
+
+```text
+X1 = Age
+X2 = Years of experience
+```
+
+These may be highly correlated.
+
+Then it becomes difficult for Logistic Regression to determine the individual contribution of each feature.
+
+Consequences can include:
+
+- unstable coefficients
+- large standard errors
+- confusing coefficient interpretation
+
+Regularization can help.
+
+---
+
+# 45. Outliers
+
+Logistic Regression can be affected by influential observations.
+
+Because the model estimates coefficients based on the training data, extreme observations can significantly alter the fitted decision boundary.
+
+This is one reason to inspect:
+
+- distributions
+- leverage/influence
+- feature scaling
+- data quality
+
+---
+
+# 46. Decision Boundary Example
+
+Suppose:
+
+$$
+z=-5+2x_1+x_2
+$$
+
+The boundary is:
+
+$$
+-5+2x_1+x_2=0
+$$
+
+Therefore:
+
+$$
+x_2=5-2x_1
+$$
+
+Points on one side are classified as one class, and points on the other side as the other class.
+
+This is why Logistic Regression works best when classes are reasonably separable by a linear boundary.
+
+---
+
+# 47. Feature Engineering Can Make Logistic Regression More Powerful
+
+Suppose the actual relationship is curved.
+
+You can introduce polynomial features:
+
+$$
+x^2
+$$
+
+or interaction terms:
+
+$$
+x_1x_2
+$$
+
+Then Logistic Regression can model:
+
+$$
+z=b_0+b_1x+b_2x^2
+$$
+
+The boundary in the **original feature space** can now become nonlinear.
+
+So although Logistic Regression itself is linear in its parameters/features, feature engineering can allow much richer decision boundaries.
+
+---
