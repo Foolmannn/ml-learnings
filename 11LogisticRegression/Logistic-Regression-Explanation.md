@@ -1579,3 +1579,415 @@ The boundary in the **original feature space** can now become nonlinear.
 So although Logistic Regression itself is linear in its parameters/features, feature engineering can allow much richer decision boundaries.
 
 ---
+
+# 48. Why Logistic Regression is Popular
+
+It has several advantages:
+
+- simple
+- fast
+- interpretable
+- probability-based
+- strong baseline
+- works well with high-dimensional sparse data
+- regularization is straightforward
+- easy to implement
+- often effective for text classification
+
+For many datasets, a well-regularized Logistic Regression model can be surprisingly competitive.
+
+---
+
+# 49. Limitations
+
+Logistic Regression struggles when:
+
+### Strong nonlinear relationships
+
+For example, if the classes form circles:
+
+```text
+       00000
+    000111000
+   0011111000
+    000111000
+       00000
+```
+
+A simple straight decision boundary won't work well.
+
+### Complex feature interactions
+
+It cannot automatically discover complex interactions the way tree-based models can.
+
+### Strongly overlapping classes
+
+If the classes are inherently difficult to separate, changing the algorithm may not solve the fundamental problem.
+
+---
+
+# 50. Complete Mental Model
+
+You can remember Logistic Regression as:
+
+```text
+Features
+   ↓
+Weighted Sum
+   ↓
+z = b0 + b1x1 + b2x2 + ...
+   ↓
+Sigmoid
+   ↓
+Probability
+   ↓
+Threshold
+   ↓
+Class
+```
+
+Mathematically:
+
+$$
+X
+\rightarrow
+z=Xw+b
+\rightarrow
+\sigma(z)
+\rightarrow
+P(y=1)
+\rightarrow
+\hat y
+$$
+
+---
+
+# 51. The Most Important Equations
+
+### Linear score
+
+$$
+\boxed{z=Xw+b}
+$$
+
+### Sigmoid
+
+$$
+\boxed{\sigma(z)=\frac{1}{1+e^{-z}}}
+$$
+
+### Probability
+
+$$
+\boxed{P(y=1|X)=\sigma(Xw+b)}
+$$
+
+### Logit
+
+$$
+\boxed{
+\log\left(\frac{p}{1-p}\right)=Xw+b
+}
+$$
+
+### Binary cross entropy
+
+$$
+\boxed{
+J=
+-\frac{1}{m}
+\sum
+[y\log p+(1-y)\log(1-p)]
+}
+$$
+
+### Decision boundary
+
+$$
+\boxed{Xw+b=0}
+$$
+
+### Odds ratio
+
+$$
+\boxed{OR=e^{w_j}}
+$$
+
+---
+
+# 52. A Practical Scikit-Learn Example
+
+Here's a more realistic example:
+
+```python
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report,
+    roc_auc_score
+)
+
+# Data
+X = df.drop("target", axis=1)
+y = df["target"]
+
+# Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+# Scaling
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Model
+model = LogisticRegression(
+    C=1.0,
+    max_iter=1000
+)
+
+# Training
+model.fit(X_train, y_train)
+
+# Prediction
+y_pred = model.predict(X_test)
+
+# Probability
+y_prob = model.predict_proba(X_test)[:, 1]
+
+# Metrics
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred))
+print("Recall:", recall_score(y_test, y_pred))
+print("F1:", f1_score(y_test, y_pred))
+print("ROC AUC:", roc_auc_score(y_test, y_prob))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+```
+
+---
+
+# 53. Understanding the Entire Algorithm from Scratch
+
+Suppose we have:
+
+```text
+Study Hours → Pass
+
+1 → 0
+2 → 0
+3 → 0
+4 → 1
+5 → 1
+6 → 1
+```
+
+The model starts with parameters such as:
+
+$$
+w=0,\quad b=0
+$$
+
+For each sample:
+
+### Linear computation
+
+$$
+z=wx+b
+$$
+
+### Sigmoid
+
+$$
+p=\frac{1}{1+e^{-z}}
+$$
+
+### Calculate loss
+
+$$
+L=
+-[y\log p+(1-y)\log(1-p)]
+$$
+
+### Calculate gradients
+
+Determine how each parameter contributes to the loss.
+
+### Update parameters
+
+$$
+w\leftarrow w-\alpha\frac{\partial J}{\partial w}
+$$
+
+$$
+b\leftarrow b-\alpha\frac{\partial J}{\partial b}
+$$
+
+Repeat many times.
+
+Eventually the model learns a boundary such as:
+
+```text
+Study hours < 3.7  → Fail
+Study hours > 3.7  → Pass
+```
+
+with probabilities rather than merely hard labels.
+
+---
+
+# 54. One Very Important Distinction
+
+There are **three different things** that people often mix up:
+
+### Score
+
+$$
+z=Xw+b
+$$
+
+Can be any real number.
+
+### Probability
+
+$$
+p=\sigma(z)
+$$
+
+Always between 0 and 1.
+
+### Class
+
+$$
+\hat y=
+\begin{cases}
+1&p\ge threshold\\
+0&p<threshold
+\end{cases}
+$$
+
+So:
+
+```text
+Raw score → Probability → Class
+```
+
+For example:
+
+```text
+z = 1.5
+    ↓
+sigmoid
+    ↓
+p = 0.818
+    ↓
+threshold = 0.5
+    ↓
+class = 1
+```
+
+That distinction will help you understand almost every classification algorithm afterward.
+
+---
+
+# 55. Interview Questions You Should Know
+
+**Why is Logistic Regression called regression?**
+
+Because it models a linear combination of features and estimates the log-odds; historically it is also framed as a regression of the logit, despite being used for classification.
+
+**Why sigmoid?**
+
+To map the linear score into a value between 0 and 1 that can be interpreted as a probability.
+
+**What loss function does Logistic Regression use?**
+
+Binary cross-entropy / log loss, commonly derived from Bernoulli maximum likelihood.
+
+**What does a coefficient mean?**
+
+It represents the change in log-odds for a one-unit increase in the feature, holding other features constant.
+
+**What is $e^{w_j}$?**
+
+The odds ratio associated with a one-unit increase in feature $j$.
+
+**Why is 0.5 used as the threshold?**
+
+It is the natural default threshold corresponding to $z=0$, but it is not universally optimal.
+
+**Can Logistic Regression handle multiclass classification?**
+
+Yes, using approaches such as OvR or multinomial logistic regression.
+
+**Does Logistic Regression require feature scaling?**
+
+Not mathematically, but scaling is often useful, especially with regularization and gradient-based optimization.
+
+**Is Logistic Regression a linear or nonlinear model?**
+
+It is a **linear classifier** in the input features because its decision boundary satisfies $Xw+b=0$.
+
+---
+
+## Final Mental Picture
+
+Think of Logistic Regression as a pipeline:
+
+$$
+\boxed{
+\text{Features}
+\rightarrow
+\text{Linear Score}
+\rightarrow
+\text{Sigmoid}
+\rightarrow
+\text{Probability}
+\rightarrow
+\text{Threshold}
+\rightarrow
+\text{Class}
+}
+$$
+
+And the training process as:
+
+$$
+\boxed{
+\text{Predict probability}
+\rightarrow
+\text{Calculate log loss}
+\rightarrow
+\text{Calculate gradient}
+\rightarrow
+\text{Update weights}
+\rightarrow
+\text{Repeat}
+}
+$$
+
+The **three concepts I would make absolutely sure you understand** are:
+
+1. **Sigmoid and why it converts the linear score into probability**
+2. **Log-odds and what Logistic Regression coefficients actually mean**
+3. **Log loss + gradient descent and how the weights are learned**
+
+These three form the foundation for understanding Logistic Regression mathematically rather than just knowing how to call `LogisticRegression()` in scikit-learn.
