@@ -767,3 +767,843 @@ This is desirable because:
 > Being confidently wrong is much worse than being uncertain.
 
 ---
+
+# 18. Visual intuition
+
+For $y=1$:
+
+$$
+Loss=-\log(\hat y)
+$$
+
+As $\hat y$ approaches 1:
+
+$$
+Loss\rightarrow0
+$$
+
+As $\hat y$ approaches 0:
+
+$$
+Loss\rightarrow\infty
+$$
+
+For $y=0$:
+
+$$
+Loss=-\log(1-\hat y)
+$$
+
+As $\hat y\rightarrow0$:
+
+$$
+Loss\rightarrow0
+$$
+
+As $\hat y\rightarrow1$:
+
+$$
+Loss\rightarrow\infty
+$$
+
+---
+
+# 19. Why is it called "Cross-Entropy"?
+
+This comes from information theory.
+
+For a binary distribution, the true distribution can be represented as:
+
+$$
+[y,1-y]
+$$
+
+The predicted distribution is:
+
+$$
+[\hat y,1-\hat y]
+$$
+
+Cross-entropy between them is:
+
+$$
+H(P,Q)
+=
+-\sum_x P(x)\log Q(x)
+$$
+
+For binary classification:
+
+$$
+H(P,Q)
+=
+-
+[
+y\log(\hat y)
++
+(1-y)\log(1-\hat y)
+]
+$$
+
+Which is exactly our BCE loss.
+
+So:
+
+$$
+\boxed{
+\text{Binary Cross-Entropy}
+=
+\text{Cross-Entropy between true and predicted distributions}
+}
+$$
+
+---
+
+# 20. The complete chain
+
+This is the most important thing to remember:
+
+### Step 1 — Linear model
+
+$$
+z=w^Tx+b
+$$
+
+### Step 2 — Sigmoid
+
+$$
+\hat y=\sigma(z)
+$$
+
+$$
+\hat y=\frac{1}{1+e^{-z}}
+$$
+
+### Step 3 — Interpret as probability
+
+$$
+\hat y=P(y=1|x)
+$$
+
+### Step 4 — Bernoulli probability
+
+$$
+P(y|x)
+=
+\hat y^y(1-\hat y)^{1-y}
+$$
+
+### Step 5 — Likelihood
+
+$$
+L=
+\prod_i
+\hat y_i^{y_i}
+(1-\hat y_i)^{1-y_i}
+$$
+
+### Step 6 — Log likelihood
+
+$$
+\log L
+=
+\sum_i
+[
+y_i\log\hat y_i+
+(1-y_i)\log(1-\hat y_i)
+]
+$$
+
+### Step 7 — Negative log likelihood
+
+$$
+-\log L
+$$
+
+### Step 8 — Average
+
+$$
+\boxed{
+BCE=
+-\frac1n
+\sum_i
+[
+y_i\log\hat y_i+
+(1-y_i)\log(1-\hat y_i)
+]
+}
+$$
+
+Therefore:
+
+$$
+\boxed{
+\text{MLE}
+\Longleftrightarrow
+\text{Maximize Likelihood}
+\Longleftrightarrow
+\text{Minimize Negative Log-Likelihood}
+\Longleftrightarrow
+\text{Minimize BCE}
+}
+$$
+
+---
+
+# 21. Why BCE is particularly suitable for Logistic Regression
+
+There is a beautiful mathematical reason.
+
+We have:
+
+$$
+\hat y=\sigma(z)
+$$
+
+where:
+
+$$
+z=w^Tx+b
+$$
+
+and BCE:
+
+$$
+L=
+-[y\log(\hat y)+(1-y)\log(1-\hat y)]
+$$
+
+The derivative with respect to $z$ simplifies to:
+
+$$
+\boxed{
+\frac{\partial L}{\partial z}=\hat y-y
+}
+$$
+
+That's extremely convenient.
+
+Since:
+
+$$
+z=w^Tx+b
+$$
+
+we obtain:
+
+$$
+\frac{\partial L}{\partial w}
+=
+(\hat y-y)x
+$$
+
+and:
+
+$$
+\boxed{
+\frac{\partial L}{\partial b}=\hat y-y
+}
+$$
+
+For the entire dataset:
+
+$$
+\boxed{
+\frac{\partial J}{\partial w}
+=
+\frac1nX^T(\hat y-y)
+}
+$$
+
+This makes gradient descent straightforward.
+
+---
+
+# 22. Example of one gradient calculation
+
+Suppose:
+
+$$
+x=2
+$$
+
+Actual:
+
+$$
+y=1
+$$
+
+Prediction:
+
+$$
+\hat y=0.3
+$$
+
+Then:
+
+$$
+\frac{\partial L}{\partial z}
+=
+\hat y-y
+$$
+
+$$
+=0.3-1
+$$
+
+$$
+=-0.7
+$$
+
+For weight:
+
+$$
+\frac{\partial L}{\partial w}
+=
+(\hat y-y)x
+$$
+
+$$
+=(-0.7)(2)
+$$
+
+$$
+=-1.4
+$$
+
+The gradient is negative.
+
+Gradient descent performs:
+
+$$
+w_{new}
+=
+w-\alpha\frac{\partial L}{\partial w}
+$$
+
+So:
+
+$$
+w_{new}
+=
+w-\alpha(-1.4)
+$$
+
+$$
+w_{new}=w+1.4\alpha
+$$
+
+The weight increases, which tends to increase $z$, which increases the sigmoid probability.
+
+That makes sense because:
+
+> Actual = 1, but prediction = 0.3 → model needs to push its prediction upward.
+
+---
+
+# 23. What happens when prediction is already good?
+
+Suppose:
+
+$$
+y=1
+$$
+
+and:
+
+$$
+\hat y=0.99
+$$
+
+Then:
+
+$$
+\frac{\partial L}{\partial z}
+=
+0.99-1
+=
+-0.01
+$$
+
+Very small gradient.
+
+Therefore, the model makes only a small adjustment.
+
+This is intuitive:
+
+> The model is already predicting correctly with high confidence.
+
+---
+
+# 24. What happens when the model is confidently wrong?
+
+Suppose:
+
+$$
+y=1
+$$
+
+but:
+
+$$
+\hat y=0.01
+$$
+
+Then:
+
+$$
+\frac{\partial L}{\partial z}
+=
+0.01-1
+=
+-0.99
+$$
+
+Large gradient.
+
+The model gets a strong signal:
+
+> "You are very wrong. Change your parameters."
+
+---
+
+# 25. BCE vs MSE
+
+This distinction is useful for understanding why logistic regression normally uses BCE.
+
+### MSE
+
+$$
+MSE=
+\frac1n\sum(y-\hat y)^2
+$$
+
+### BCE
+
+$$
+BCE=
+-\frac1n\sum
+[
+y\log\hat y+
+(1-y)\log(1-\hat y)
+]
+$$
+
+| Property | MSE | BCE |
+|---|---|---|
+| Common use | Regression | Binary classification |
+| Output | Continuous value | Probability |
+| Based on | Squared error | Likelihood / entropy |
+| Logistic regression | Not standard | Standard |
+| Probabilistic interpretation | Weaker here | Strong |
+| Punishes confident wrong predictions | Less appropriately | Strongly |
+
+---
+
+# 26. Important distinction: Loss vs Cost vs Objective
+
+You'll see these terms used somewhat interchangeably, but conceptually:
+
+### Loss
+
+Loss for **one training example**:
+
+$$
+\boxed{
+L_i=
+-[y_i\log\hat y_i+(1-y_i)\log(1-\hat y_i)]
+}
+$$
+
+### Cost
+
+Average loss over the dataset:
+
+$$
+\boxed{
+J=
+\frac1n\sum_iL_i
+}
+$$
+
+Therefore:
+
+$$
+J=
+-\frac1n\sum_i
+[
+y_i\log\hat y_i+
+(1-y_i)\log(1-\hat y_i)
+]
+$$
+
+### Objective
+
+The function we are trying to optimize.
+
+For logistic regression:
+
+$$
+\boxed{\min_{w,b}J(w,b)}
+$$
+
+---
+
+# 27. Classification threshold is separate from BCE
+
+This is another important concept.
+
+The model outputs a probability:
+
+$$
+\hat y=0.73
+$$
+
+You might classify it as:
+
+$$
+\hat y\geq0.5\Rightarrow1
+$$
+
+and:
+
+$$
+\hat y<0.5\Rightarrow0
+$$
+
+But **BCE uses the probability itself**, not merely the final class.
+
+For example:
+
+$$
+0.51
+$$
+
+and:
+
+$$
+0.99
+$$
+
+would both be classified as 1 using a 0.5 threshold.
+
+But BCE considers them very different predictions.
+
+That's one reason probability-based loss is useful.
+
+---
+
+# 28. A simple intuition
+
+Imagine you're answering a yes/no question.
+
+The model says:
+
+> "I'm 99% sure the answer is YES."
+
+If the answer is YES:
+
+✅ Excellent prediction.
+
+If the answer is NO:
+
+❌ Extremely bad prediction.
+
+BCE captures this.
+
+But if the model says:
+
+> "I'm only 51% sure it's YES."
+
+and the answer is NO:
+
+That's not nearly as bad.
+
+Therefore BCE rewards:
+
+**correct + confident**
+
+and heavily penalizes:
+
+**wrong + confident**
+
+---
+
+# 29. One complete numerical example
+
+Suppose we have:
+
+$$
+y=[1,0,1,1]
+$$
+
+and predictions:
+
+$$
+\hat y=[0.9,0.2,0.8,0.4]
+$$
+
+Calculate each loss.
+
+### Example 1
+
+$$
+y=1,\hat y=0.9
+$$
+
+$$
+L_1=-\log(0.9)=0.105
+$$
+
+### Example 2
+
+$$
+y=0,\hat y=0.2
+$$
+
+$$
+L_2=-\log(0.8)=0.223
+$$
+
+### Example 3
+
+$$
+y=1,\hat y=0.8
+$$
+
+$$
+L_3=-\log(0.8)=0.223
+$$
+
+### Example 4
+
+$$
+y=1,\hat y=0.4
+$$
+
+$$
+L_4=-\log(0.4)=0.916
+$$
+
+Average:
+
+$$
+BCE=
+\frac{0.105+0.223+0.223+0.916}{4}
+$$
+
+$$
+\boxed{BCE\approx0.367}
+$$
+
+That is the cost that the optimization algorithm tries to minimize.
+
+---
+
+# 30. The relationship with Bernoulli Distribution
+
+Binary classification has two possible outcomes:
+
+$$
+y\in\{0,1\}
+$$
+
+This is modeled using a **Bernoulli distribution**:
+
+$$
+P(y|x)
+=
+p^y(1-p)^{1-y}
+$$
+
+Logistic regression predicts:
+
+$$
+p=\sigma(w^Tx+b)
+$$
+
+Then Maximum Likelihood estimates $w,b$.
+
+So conceptually:
+
+$$
+\boxed{
+\text{Logistic Regression}
+=
+\text{Bernoulli model}
++
+\text{Sigmoid}
++
+\text{Maximum Likelihood}
+}
+$$
+
+And the resulting optimization objective is:
+
+$$
+\boxed{\text{Binary Cross-Entropy}}
+$$
+
+---
+
+# 31. The big picture
+
+You can visualize the entire process like this:
+
+```text
+                 INPUT
+                   │
+                   ▼
+             x₁, x₂, ..., xₙ
+                   │
+                   ▼
+             Linear Equation
+             z = wᵀx + b
+                   │
+                   ▼
+                Sigmoid
+          p = 1 / (1 + e⁻ᶻ)
+                   │
+                   ▼
+          Probability of class 1
+                   │
+                   ▼
+       ┌─────────────────────────┐
+       │                         │
+     y = 1                     y = 0
+       │                         │
+       ▼                         ▼
+   Probability p          Probability 1-p
+       │                         │
+       └────────────┬────────────┘
+                    ▼
+              Likelihood
+                    │
+                    ▼
+             Log Likelihood
+                    │
+                    ▼
+          Negative Log Likelihood
+                    │
+                    ▼
+        Binary Cross-Entropy Loss
+                    │
+                    ▼
+             Gradient Descent
+                    │
+                    ▼
+             Update w and b
+                    │
+                    └──────► Repeat
+```
+
+---
+
+# 32. The most important formulas to remember
+
+### Logistic regression
+
+$$
+\boxed{
+\hat y=\sigma(w^Tx+b)
+}
+$$
+
+### Sigmoid
+
+$$
+\boxed{
+\sigma(z)=\frac1{1+e^{-z}}
+}
+$$
+
+### Bernoulli probability
+
+$$
+\boxed{
+P(y|x)=
+\hat y^y(1-\hat y)^{1-y}
+}
+$$
+
+### Likelihood
+
+$$
+\boxed{
+L=
+\prod_i
+\hat y_i^{y_i}(1-\hat y_i)^{1-y_i}
+}
+$$
+
+### Log-likelihood
+
+$$
+\boxed{
+\log L=
+\sum_i[
+y_i\log\hat y_i+
+(1-y_i)\log(1-\hat y_i)
+]
+}
+$$
+
+### Binary Cross-Entropy
+
+$$
+\boxed{
+BCE=
+-\frac1n\sum_i[
+y_i\log\hat y_i+
+(1-y_i)\log(1-\hat y_i)
+]
+}
+$$
+
+### Gradient
+
+$$
+\boxed{
+\frac{\partial L}{\partial z}
+=
+\hat y-y
+}
+$$
+
+### Weight gradient
+
+$$
+\boxed{
+\frac{\partial L}{\partial w}
+=
+(\hat y-y)x
+}
+$$
+
+---
+
+# 33. One-line mental model
+
+If you want to remember the entire topic for exams/interviews:
+
+> **Logistic regression predicts a probability using sigmoid. We choose the parameters that make the observed training labels most likely (Maximum Likelihood). Taking the negative log of that likelihood gives the Binary Cross-Entropy loss, which we minimize using gradient-based optimization.**
+
+Or even shorter:
+
+$$
+\boxed{
+\text{Sigmoid}
+\rightarrow
+\text{Probability}
+\rightarrow
+\text{Likelihood}
+\rightarrow
+\text{Log}
+\rightarrow
+\text{Negative}
+\rightarrow
+\text{BCE}
+}
+$$
+
+This connection is **the core mathematical foundation of logistic regression**.
