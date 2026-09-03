@@ -1003,3 +1003,752 @@ So log loss heavily penalizes:
 This is why probability quality matters.
 
 ---
+
+# 23. Multiclass Classification
+
+Suppose we have:
+
+```text
+Cat
+Dog
+Horse
+```
+
+We can calculate metrics in several ways.
+
+### Macro Average
+
+Calculate the metric independently for each class and then take the average.
+
+$$
+Metric_{macro}
+=
+\frac{M_1+M_2+...+M_k}{k}
+$$
+
+Every class gets equal importance.
+
+Useful when:
+
+> Every class is important.
+
+---
+
+# 24. Micro Average
+
+Combine all TP, FP and FN across classes first.
+
+Then calculate the metric.
+
+For example:
+
+$$
+Precision_{micro}
+=
+\frac{\sum TP}
+{\sum TP+\sum FP}
+$$
+
+Large classes have more influence.
+
+Useful when:
+
+> Overall instance-level performance matters.
+
+---
+
+# 25. Weighted Average
+
+Calculate each class's metric and weight it according to the number of samples.
+
+$$
+Metric_{weighted}
+=
+\sum_i
+\frac{n_i}{N}M_i
+$$
+
+So classes with more samples contribute more.
+
+---
+
+# 26. Macro vs Micro vs Weighted
+
+Suppose:
+
+```text
+Class A = 900 samples
+Class B = 90 samples
+Class C = 10 samples
+```
+
+### Macro
+
+```text
+A → equal weight
+B → equal weight
+C → equal weight
+```
+
+Good for minority-class performance.
+
+### Weighted
+
+```text
+A → 90%
+B → 9%
+C → 1%
+```
+
+Large classes dominate.
+
+### Micro
+
+Aggregates individual predictions globally.
+
+---
+
+# 27. Balanced Accuracy
+
+Balanced accuracy is particularly useful for imbalanced datasets.
+
+For binary classification:
+
+$$
+BalancedAccuracy=
+\frac{Sensitivity+Specificity}{2}
+$$
+
+Since:
+
+$$
+Sensitivity=TPR
+$$
+
+we have:
+
+$$
+BalancedAccuracy=
+\frac{TPR+TNR}{2}
+$$
+
+Example:
+
+```text
+Recall      = 80%
+Specificity = 90%
+```
+
+Then:
+
+$$
+BalancedAccuracy=
+\frac{0.8+0.9}{2}
+$$
+
+$$
+=85\%
+$$
+
+---
+
+# 28. Matthews Correlation Coefficient — MCC
+
+MCC is a powerful metric, particularly when classes are imbalanced.
+
+Formula:
+
+$$
+MCC=
+\frac{TP\times TN-FP\times FN}
+{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}
+$$
+
+Range:
+
+$$
+-1\leq MCC\leq1
+$$
+
+Interpretation:
+
+| MCC | Meaning |
+|---:|---|
+| +1 | Perfect prediction |
+| 0 | Random-like prediction |
+| -1 | Completely wrong prediction |
+
+MCC considers:
+
+> TP, TN, FP and FN simultaneously.
+
+It is often a strong choice for highly imbalanced binary classification.
+
+---
+
+# 29. Cohen's Kappa
+
+Cohen's Kappa measures agreement between:
+
+> Predictions and actual labels
+
+while accounting for agreement that could occur by chance.
+
+$$
+\kappa=
+\frac{p_o-p_e}{1-p_e}
+$$
+
+where:
+
+- $p_o$ = observed agreement
+- $p_e$ = expected agreement by chance
+
+Rough interpretation:
+
+| Kappa | Agreement |
+|---:|---|
+| 1 | Perfect |
+| 0 | Chance |
+| < 0 | Worse than chance |
+
+It is useful when simple accuracy doesn't adequately account for class distribution.
+
+---
+
+# 30. Classification Report
+
+In Python using scikit-learn:
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+You might get:
+
+```text
+              precision    recall  f1-score   support
+
+           0       0.92      0.95      0.93       100
+           1       0.88      0.82      0.85        50
+
+    accuracy                           0.91       150
+   macro avg       0.90      0.88      0.89       150
+weighted avg       0.91      0.91      0.91       150
+```
+
+Understand each column:
+
+### Precision
+
+Quality of positive predictions.
+
+### Recall
+
+Ability to find actual positives.
+
+### F1
+
+Balance between precision and recall.
+
+### Support
+
+Number of actual samples belonging to that class.
+
+---
+
+# 31. Important Metric Relationships
+
+The complete picture is:
+
+```text
+                 Confusion Matrix
+                       |
+          +------------+------------+
+          |            |            |
+       Accuracy     Precision     Recall
+                                    |
+                               Sensitivity
+                                    |
+                                  TPR
+```
+
+And:
+
+```text
+Specificity
+     |
+    TNR
+     |
+FPR = 1 - Specificity
+```
+
+Then:
+
+```text
+Precision + Recall
+        |
+       F1
+        |
+       Fβ
+```
+
+And threshold-based:
+
+```text
+Probabilities
+      |
+   Threshold
+      |
+      +----------+
+      |          |
+   ROC Curve   PR Curve
+      |          |
+   ROC-AUC     PR-AUC
+```
+
+---
+
+# 32. Which Metric Should You Use?
+
+This is more important than memorizing formulas.
+
+| Problem | Important metric |
+|---|---|
+| Balanced classification | Accuracy |
+| False positives expensive | Precision |
+| False negatives expensive | Recall |
+| Need balance of precision/recall | F1 |
+| Recall more important | F2 |
+| Precision more important | F0.5 |
+| Imbalanced dataset | F1 / Balanced Accuracy / MCC |
+| Extremely imbalanced positive class | PR-AUC |
+| Ranking/separation | ROC-AUC |
+| Probability quality | Log Loss |
+| Both classes equally important | Balanced Accuracy |
+| Strong imbalanced binary evaluation | MCC |
+
+---
+
+# 33. Real-World Examples
+
+## Spam Detection
+
+You classify:
+
+```text
+Spam / Not Spam
+```
+
+False Positive:
+
+> Important email classified as spam.
+
+False Negative:
+
+> Spam enters inbox.
+
+Usually you care significantly about **precision**, because falsely blocking legitimate email can be costly.
+
+---
+
+## Disease Detection
+
+```text
+Disease / No Disease
+```
+
+False Negative:
+
+> Sick patient classified as healthy.
+
+This can be very dangerous.
+
+Therefore:
+
+$$
+\boxed{Recall}
+$$
+
+is often prioritized.
+
+---
+
+## Fraud Detection
+
+```text
+Fraud / Legitimate
+```
+
+Fraud is usually a tiny minority.
+
+Therefore:
+
+```text
+Accuracy ❌
+```
+
+is often insufficient.
+
+Better choices:
+
+```text
+Precision
+Recall
+F1
+PR-AUC
+MCC
+```
+
+depending on the business objective.
+
+---
+
+# 34. The Threshold Trade-off
+
+Suppose your model predicts:
+
+```text
+0.95
+0.90
+0.82
+0.75
+0.61
+0.45
+0.30
+0.10
+```
+
+With threshold:
+
+$$
+0.5
+$$
+
+everything above 0.5 becomes positive.
+
+If you lower threshold:
+
+$$
+0.3
+$$
+
+more examples become positive.
+
+Usually:
+
+```text
+Threshold ↓
+      ↓
+More predicted positives
+      ↓
+Recall ↑
+      ↓
+False positives may ↑
+      ↓
+Precision may ↓
+```
+
+Conversely:
+
+```text
+Threshold ↑
+      ↓
+Fewer predicted positives
+      ↓
+Precision may ↑
+      ↓
+Recall may ↓
+```
+
+This is why **the classification threshold is a decision variable**, not necessarily something that should blindly remain at 0.5.
+
+---
+
+# 35. A Complete Example
+
+Suppose:
+
+$$
+TP=80
+$$
+
+$$
+TN=850
+$$
+
+$$
+FP=50
+$$
+
+$$
+FN=20
+$$
+
+Total:
+
+$$
+1000
+$$
+
+### Accuracy
+
+$$
+\frac{80+850}{1000}
+=0.93
+$$
+
+$$
+\boxed{93\%}
+$$
+
+### Precision
+
+$$
+\frac{80}{80+50}
+=0.615
+$$
+
+$$
+\boxed{61.5\%}
+$$
+
+### Recall
+
+$$
+\frac{80}{80+20}
+=0.80
+$$
+
+$$
+\boxed{80\%}
+$$
+
+### Specificity
+
+$$
+\frac{850}{850+50}
+=0.944
+$$
+
+$$
+\boxed{94.4\%}
+$$
+
+### F1
+
+$$
+F1=
+2\frac{0.615(0.80)}
+{0.615+0.80}
+$$
+
+$$
+\boxed{F1\approx69.6\%}
+$$
+
+Notice something interesting:
+
+```text
+Accuracy = 93%
+F1       ≈ 69.6%
+```
+
+This shows why accuracy alone can hide problems.
+
+---
+
+# 36. A Practical ML Evaluation Workflow
+
+When you train a classifier, don't immediately look only at accuracy.
+
+Use this workflow:
+
+### Step 1 — Look at class distribution
+
+```python
+y_train.value_counts()
+```
+
+Ask:
+
+> Are classes balanced?
+
+---
+
+### Step 2 — Look at confusion matrix
+
+```python
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+print(cm)
+```
+
+Understand:
+
+```text
+TP
+TN
+FP
+FN
+```
+
+---
+
+### Step 3 — Generate classification report
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+Check:
+
+```text
+precision
+recall
+f1-score
+support
+```
+
+---
+
+### Step 4 — Evaluate probabilities
+
+If your model supports:
+
+```python
+y_prob = model.predict_proba(X_test)[:, 1]
+```
+
+then evaluate:
+
+```python
+from sklearn.metrics import roc_auc_score
+
+roc_auc_score(y_test, y_prob)
+```
+
+And for imbalanced data:
+
+```python
+from sklearn.metrics import average_precision_score
+
+average_precision_score(y_test, y_prob)
+```
+
+---
+
+# 37. The Most Important Concept to Remember
+
+Don't ask:
+
+> **"Which classification metric is best?"**
+
+Ask:
+
+> **"What type of error is more expensive?"**
+
+Because the metric should follow the problem.
+
+### If FP is expensive:
+
+Focus on:
+
+$$
+\boxed{Precision}
+$$
+
+### If FN is expensive:
+
+Focus on:
+
+$$
+\boxed{Recall}
+$$
+
+### If both matter:
+
+Focus on:
+
+$$
+\boxed{F1}
+$$
+
+### If classes are highly imbalanced:
+
+Consider:
+
+$$
+\boxed{PR-AUC,\ F1,\ MCC,\ Balanced\ Accuracy}
+$$
+
+### If probability quality matters:
+
+Use:
+
+$$
+\boxed{Log\ Loss}
+$$
+
+### If you want threshold-independent ranking performance:
+
+Use:
+
+$$
+\boxed{ROC-AUC}
+$$
+
+---
+
+# 38. Cheat Sheet
+
+| Metric | Formula | Answers |
+|---|---|---|
+| **Accuracy** | $\frac{TP+TN}{Total}$ | How many predictions are correct? |
+| **Precision** | $\frac{TP}{TP+FP}$ | When I predict positive, am I right? |
+| **Recall** | $\frac{TP}{TP+FN}$ | How many positives did I find? |
+| **Specificity** | $\frac{TN}{TN+FP}$ | How many negatives did I correctly identify? |
+| **FPR** | $\frac{FP}{FP+TN}$ | How many negatives became false alarms? |
+| **F1** | $2\frac{PR}{P+R}$ | Balance precision and recall |
+| **Fβ** | $ (1+\beta^2)\frac{PR}{\beta^2P+R}$ | Weighted precision/recall |
+| **ROC-AUC** | Area under ROC | How well are classes separated/ranked? |
+| **PR-AUC** | Area under PR | How well is the positive class detected? |
+| **Log Loss** | Cross-entropy | How good are predicted probabilities? |
+| **Balanced Accuracy** | $\frac{TPR+TNR}{2}$ | Performance accounting for both classes |
+| **MCC** | Correlation of predictions/labels | Robust binary classification quality |
+| **Kappa** | $\frac{p_o-p_e}{1-p_e}$ | Agreement beyond chance |
+
+---
+
+## The mental model
+
+If you remember only this diagram, you'll have the foundation of classification metrics:
+
+```text
+                    ACTUAL
+                 ┌───────────┐
+                 │           │
+              Positive    Negative
+                 │           │
+        ┌────────┴─────┐ ┌───┴────────┐
+        │              │ │            │
+       TP              FN FP           TN
+        │              │ │            │
+        └──────┬───────┘ └─────┬──────┘
+               │               │
+            Recall          Specificity
+               │               │
+               └──────┬────────┘
+                      │
+             Precision + Recall
+                      │
+                     F1
+```
+
+The **next important step** after this is understanding **ROC-AUC vs PR-AUC and threshold selection mathematically**, because that's where classification metrics become much more useful in real ML model evaluation.
