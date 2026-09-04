@@ -1595,3 +1595,369 @@ $$
 This demonstrates that AUC measures **ranking quality**.
 
 ---
+
+# 35. Pairwise interpretation of AUC
+
+Suppose:
+
+$$
+N_+=\text{number of positive samples}
+$$
+
+and:
+
+$$
+N_-=\text{number of negative samples}
+$$
+
+There are:
+
+$$
+N_+N_-
+$$
+
+possible positive-negative pairs.
+
+AUC can approximately be interpreted as:
+
+$$
+AUC=
+\frac{\text{correctly ranked positive-negative pairs}}
+{\text{total positive-negative pairs}}
+$$
+
+with appropriate handling of ties.
+
+For example:
+
+```text
+100 positive samples
+100 negative samples
+```
+
+Number of pairs:
+
+$$
+100\times100=10,000
+$$
+
+If the model correctly ranks 8,500 pairs:
+
+$$
+AUC\approx\frac{8500}{10000}
+$$
+
+$$
+\boxed{AUC=0.85}
+$$
+
+This is one of the best mathematical intuitions for AUC.
+
+---
+
+# 36. ROC-AUC vs F1 Score
+
+They answer different questions.
+
+### ROC-AUC
+
+Measures:
+
+> How well does the model discriminate/rank positives versus negatives across thresholds?
+
+### F1
+
+Measures:
+
+> How well does the model balance precision and recall at a particular threshold?
+
+F1:
+
+$$
+F1=2\frac{Precision\times Recall}
+{Precision+Recall}
+$$
+
+Therefore:
+
+```text
+ROC-AUC
+    ↓
+Threshold-independent discrimination
+
+F1
+    ↓
+Performance at a chosen threshold
+```
+
+---
+
+# 37. ROC-AUC vs Accuracy vs F1
+
+| Metric | Main purpose |
+|---|---|
+| Accuracy | Overall correct predictions |
+| Precision | How many predicted positives are actually positive |
+| Recall/TPR | How many actual positives were detected |
+| F1 | Balance between precision and recall |
+| ROC-AUC | Ranking/discrimination across thresholds |
+| PR-AUC | Precision-recall performance, especially useful for rare positives |
+
+---
+
+# 38. A practical ML evaluation workflow
+
+For a binary classification problem, don't rely on only one metric.
+
+A good evaluation might be:
+
+```text
+                 Classification Model
+                         |
+          +--------------+--------------+
+          |              |              |
+       Accuracy       Precision       Recall
+          |              |              |
+          +--------------+--------------+
+                         |
+                        F1
+                         |
+                  ROC-AUC / PR-AUC
+```
+
+And inspect the:
+
+```text
+Confusion Matrix
+ROC Curve
+Precision-Recall Curve
+```
+
+---
+
+# 39. Example: Landslide detection
+
+For the mountain/river landslide-detection system you've been considering, imagine:
+
+```text
+Input:
+Satellite image + rainfall + river flow + terrain features
+                         ↓
+                    ML model
+                         ↓
+              P(landslide)=0.83
+```
+
+Suppose:
+
+$$
+P(landslide)=0.83
+$$
+
+If threshold is:
+
+$$
+0.5
+$$
+
+then:
+
+```text
+0.83 > 0.5
+```
+
+so:
+
+```text
+Landslide = YES
+```
+
+But suppose you want to minimize missed landslides.
+
+You could lower the threshold:
+
+$$
+0.5\rightarrow0.3
+$$
+
+Now more possible landslides will be detected.
+
+Therefore:
+
+$$
+TPR\uparrow
+$$
+
+but potentially:
+
+$$
+FPR\uparrow
+$$
+
+ROC analysis helps you understand this trade-off.
+
+For a safety-oriented system, though, you would **not choose the threshold solely from AUC**. You would consider the real cost of false alarms versus missed events and likely combine ROC/PR analysis with domain-specific alert criteria.
+
+---
+
+# 40. The biggest concepts to remember
+
+If you're preparing for ML interviews/exams, remember these relationships:
+
+### Confusion matrix
+
+$$
+TP,\;TN,\;FP,\;FN
+$$
+
+↓
+
+### True Positive Rate
+
+$$
+\boxed{TPR=\frac{TP}{TP+FN}}
+$$
+
+↓
+
+### False Positive Rate
+
+$$
+\boxed{FPR=\frac{FP}{FP+TN}}
+$$
+
+↓
+
+### ROC
+
+$$
+\boxed{ROC=TPR\;vs.\;FPR}
+$$
+
+↓
+
+### ROC-AUC
+
+$$
+\boxed{\text{Area under ROC curve}}
+$$
+
+↓
+
+### Interpretation
+
+$$
+\boxed{\text{Probability that a random positive is ranked above a random negative}}
+$$
+
+---
+
+# 41. The complete mental model
+
+Think of a classifier as producing a **score**, not immediately producing a class:
+
+```text
+                    Model
+                      ↓
+              Continuous score
+                      ↓
+        ┌─────────────┼─────────────┐
+        ↓             ↓             ↓
+     threshold      threshold     threshold
+       0.8            0.5           0.2
+        ↓             ↓             ↓
+     TPR/FPR        TPR/FPR       TPR/FPR
+        └─────────────┼─────────────┘
+                      ↓
+                 ROC Curve
+                      ↓
+                 Area under it
+                      ↓
+                   ROC-AUC
+```
+
+The most important distinction is:
+
+> **ROC curve = behavior across thresholds.**
+
+> **ROC-AUC = one-number summary of that curve.**
+
+And:
+
+> **AUC evaluates discrimination/ranking, not whether the predicted probabilities are perfectly calibrated.**
+
+---
+
+## Quick interview questions
+
+**Q: What does ROC stand for?**
+
+Receiver Operating Characteristic.
+
+**Q: What does ROC plot?**
+
+$$
+TPR\text{ against }FPR
+$$
+
+**Q: What is TPR?**
+
+$$
+TPR=\frac{TP}{TP+FN}
+$$
+
+**Q: What is FPR?**
+
+$$
+FPR=\frac{FP}{FP+TN}
+$$
+
+**Q: What does AUC = 0.5 mean?**
+
+Approximately random discrimination.
+
+**Q: What does AUC = 1 mean?**
+
+Perfect discrimination.
+
+**Q: Is ROC-AUC threshold-dependent?**
+
+No. It summarizes performance across thresholds.
+
+**Q: Is accuracy threshold-dependent?**
+
+Yes.
+
+**Q: For severe class imbalance, should you only look at ROC-AUC?**
+
+No. Also examine the **Precision-Recall curve / PR-AUC**, precision, recall, and the confusion matrix.
+
+**Q: Should ROC use `predict()` or probability scores?**
+
+Usually probability/decision scores:
+
+```python
+model.predict_proba(X_test)[:, 1]
+```
+
+rather than hard `0/1` predictions.
+
+### One-line summary
+
+$$
+\boxed{
+\text{ROC Curve}=\text{TPR vs FPR at different thresholds}
+}
+$$
+
+$$
+\boxed{
+\text{ROC-AUC}=\text{Area under that curve}
+}
+$$
+
+$$
+\boxed{
+AUC\approx P(\text{random positive gets higher score than random negative})
+}
+$$
