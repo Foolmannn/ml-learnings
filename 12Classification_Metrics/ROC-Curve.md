@@ -1089,3 +1089,509 @@ because missing a disease can be much worse than a false alarm.
 So the threshold is a **business/domain decision**, not simply a machine-learning decision.
 
 ---
+
+# 23. The Youden's J statistic
+
+One common method for selecting a threshold is **Youden's J statistic**:
+
+$$
+J=TPR-FPR
+$$
+
+or equivalently:
+
+$$
+J=Sensitivity+Specificity-1
+$$
+
+Since:
+
+$$
+Specificity=1-FPR
+$$
+
+we get:
+
+$$
+J=TPR-(1-Specificity)
+$$
+
+$$
+J=TPR+Specificity-1
+$$
+
+You can select the threshold that maximizes:
+
+$$
+\boxed{J}
+$$
+
+This finds a point that balances sensitivity and specificity.
+
+But again, it isn't always the optimal business threshold.
+
+---
+
+# 24. Specificity and ROC
+
+Specificity is:
+
+$$
+Specificity=\frac{TN}{TN+FP}
+$$
+
+Notice:
+
+$$
+FPR=\frac{FP}{FP+TN}
+$$
+
+Therefore:
+
+$$
+\boxed{FPR=1-Specificity}
+$$
+
+This means ROC can also be understood as:
+
+$$
+\boxed{Sensitivity\;vs.\;1-Specificity}
+$$
+
+or:
+
+$$
+\boxed{TPR\;vs.\;FPR}
+$$
+
+These are exactly the same thing.
+
+---
+
+# 25. Geometric interpretation of ROC
+
+The ROC space has:
+
+```text
+TPR
+ 1 |             ● Perfect
+   |           /
+   |         /
+   |       /
+   |     /
+   |   /
+   | /
+ 0 |●-----------------------●
+   0                       1
+            FPR
+```
+
+The important regions are:
+
+### Upper-left
+
+Ideal.
+
+$$
+FPR\rightarrow0
+$$
+
+$$
+TPR\rightarrow1
+$$
+
+### Diagonal
+
+Random classifier.
+
+$$
+TPR=FPR
+$$
+
+### Lower-right
+
+Poor classifier.
+
+---
+
+# 26. Dominance between ROC curves
+
+Suppose we have two models:
+
+```text
+Model A
+Model B
+```
+
+If Model A's ROC curve is consistently above Model B's curve, then Model A generally has better discrimination.
+
+For example:
+
+```text
+TPR
+1 |        A
+  |      A
+  |    A     B
+  |   A     B
+  |  A    B
+0 |----------------
+  0              1
+       FPR
+```
+
+Model A dominates Model B across those operating regions.
+
+---
+
+# 27. ROC-AUC in scikit-learn
+
+Suppose we train Logistic Regression:
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_curve, roc_auc_score
+```
+
+Train the model:
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = LogisticRegression()
+
+model.fit(X_train, y_train)
+```
+
+Now get **probabilities**:
+
+```python
+y_prob = model.predict_proba(X_test)[:, 1]
+```
+
+This is extremely important.
+
+Do **not** use:
+
+```python
+y_pred = model.predict(X_test)
+```
+
+for ROC-AUC when you want the full ROC curve.
+
+Instead use the continuous probability/score:
+
+```python
+y_prob
+```
+
+---
+
+# 28. Calculate ROC-AUC
+
+```python
+auc = roc_auc_score(y_test, y_prob)
+
+print("ROC-AUC:", auc)
+```
+
+For example:
+
+```text
+ROC-AUC: 0.87
+```
+
+means the model has reasonably strong ability to distinguish positive examples from negative examples.
+
+---
+
+# 29. Calculate the ROC curve
+
+```python
+fpr, tpr, thresholds = roc_curve(
+    y_test,
+    y_prob
+)
+```
+
+You now have three arrays:
+
+```python
+fpr
+tpr
+thresholds
+```
+
+For example:
+
+```text
+threshold     FPR     TPR
+--------------------------------
+inf           0.00    0.00
+0.91          0.01    0.20
+0.82          0.04    0.45
+0.65          0.10    0.70
+0.42          0.20    0.85
+0.15          0.50    0.95
+...
+```
+
+These points create the ROC curve.
+
+---
+
+# 30. Plot ROC curve
+
+```python
+import matplotlib.pyplot as plt
+
+plt.plot(fpr, tpr, label=f"ROC-AUC = {auc:.2f}")
+
+plt.plot([0, 1], [0, 1], linestyle="--")
+
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+
+plt.title("ROC Curve")
+
+plt.legend()
+
+plt.show()
+```
+
+---
+
+# 31. Very important: `predict()` vs `predict_proba()`
+
+This is a common beginner mistake.
+
+### `predict()`
+
+Returns:
+
+```text
+0
+1
+0
+1
+```
+
+These are final class predictions.
+
+---
+
+### `predict_proba()`
+
+Returns something like:
+
+```text
+0.91
+0.72
+0.13
+0.45
+```
+
+These are probability estimates.
+
+ROC needs to see how the model ranks examples as the threshold moves.
+
+Therefore:
+
+```python
+roc_curve(y_test, y_prob)
+```
+
+where:
+
+```python
+y_prob = model.predict_proba(X_test)[:, 1]
+```
+
+is the usual approach.
+
+---
+
+# 32. ROC-AUC with multiple models
+
+You can compare models:
+
+```python
+models = {
+    "Logistic Regression": LogisticRegression(),
+    "Random Forest": RandomForestClassifier(),
+}
+```
+
+For each model:
+
+```python
+for name, model in models.items():
+
+    model.fit(X_train, y_train)
+
+    y_prob = model.predict_proba(X_test)[:, 1]
+
+    auc = roc_auc_score(y_test, y_prob)
+
+    print(name, auc)
+```
+
+You might get:
+
+```text
+Logistic Regression    0.84
+Random Forest          0.91
+```
+
+Random Forest has better overall discrimination according to ROC-AUC.
+
+---
+
+# 33. ROC-AUC and logistic regression
+
+Since you've been studying logistic regression, there's a useful connection.
+
+Logistic regression calculates:
+
+$$
+z=w^Tx+b
+$$
+
+and then:
+
+$$
+p=\sigma(z)
+$$
+
+where:
+
+$$
+\sigma(z)=\frac{1}{1+e^{-z}}
+$$
+
+The model produces:
+
+$$
+p=P(y=1|x)
+$$
+
+Then we select a threshold:
+
+$$
+p\geq t
+$$
+
+to predict class 1.
+
+ROC essentially asks:
+
+> What happens to TPR and FPR as $t$ moves from 1 toward 0?
+
+So the pipeline is:
+
+$$
+X
+$$
+
+↓
+
+$$
+w^TX+b
+$$
+
+↓
+
+$$
+\sigma(w^TX+b)
+$$
+
+↓
+
+**Probability**
+
+↓
+
+**Change threshold**
+
+↓
+
+$$
+TPR,FPR
+$$
+
+↓
+
+**ROC Curve**
+
+↓
+
+**Area**
+
+↓
+
+$$
+\boxed{ROC-AUC}
+$$
+
+---
+
+# 34. AUC and ranking
+
+Here's another excellent way to understand AUC.
+
+Suppose we have:
+
+### Positive examples
+
+```text
+P1 = 0.90
+P2 = 0.80
+P3 = 0.70
+```
+
+### Negative examples
+
+```text
+N1 = 0.40
+N2 = 0.30
+N3 = 0.20
+```
+
+Every positive score is greater than every negative score.
+
+Therefore:
+
+$$
+AUC=1
+$$
+
+Now suppose:
+
+```text
+Positive:
+0.90
+0.80
+0.30
+
+Negative:
+0.70
+0.40
+0.20
+```
+
+Some positive/negative pairs are incorrectly ranked.
+
+Therefore:
+
+$$
+AUC<1
+$$
+
+This demonstrates that AUC measures **ranking quality**.
+
+---
