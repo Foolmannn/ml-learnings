@@ -529,3 +529,476 @@ $$
 This is extremely important in neural networks and machine learning.
 
 ---
+
+# 13. Derivation
+
+Start with:
+
+$$
+L=-\sum_i y_i\log p_i
+$$
+
+Since:
+
+$$
+p_i=\frac{e^{z_i}}{\sum_j e^{z_j}}
+$$
+
+we can write:
+
+$$
+\log p_i
+=
+z_i-\log\left(\sum_j e^{z_j}\right)
+$$
+
+Therefore:
+
+$$
+L=
+-\sum_i y_i
+\left[
+z_i-\log\left(\sum_j e^{z_j}\right)
+\right]
+$$
+
+Expand:
+
+$$
+L=
+-\sum_i y_i z_i
++
+\sum_i y_i
+\log\left(\sum_j e^{z_j}\right)
+$$
+
+Since one-hot labels satisfy:
+
+$$
+\sum_i y_i=1
+$$
+
+we get:
+
+$$
+L=
+-\sum_i y_i z_i
++
+\log\left(\sum_j e^{z_j}\right)
+$$
+
+Differentiate with respect to $z_k$:
+
+$$
+\frac{\partial L}{\partial z_k}
+=
+-y_k+
+\frac{e^{z_k}}
+{\sum_j e^{z_j}}
+$$
+
+But:
+
+$$
+\frac{e^{z_k}}
+{\sum_j e^{z_j}}=p_k
+$$
+
+Therefore:
+
+$$
+\boxed{
+\frac{\partial L}{\partial z_k}=p_k-y_k
+}
+$$
+
+This elegant gradient is why softmax + cross-entropy is so commonly used.
+
+---
+
+# 14. Gradient with respect to weights
+
+We have:
+
+$$
+z_k=w_k^Tx+b_k
+$$
+
+and:
+
+$$
+\frac{\partial L}{\partial z_k}=p_k-y_k
+$$
+
+Using the chain rule:
+
+$$
+\frac{\partial L}{\partial w_k}
+=
+\frac{\partial L}{\partial z_k}
+\frac{\partial z_k}{\partial w_k}
+$$
+
+Since:
+
+$$
+\frac{\partial z_k}{\partial w_k}=x
+$$
+
+we obtain:
+
+$$
+\boxed{
+\frac{\partial L}{\partial w_k}
+=
+(p_k-y_k)x
+}
+$$
+
+And for the bias:
+
+$$
+\boxed{
+\frac{\partial L}{\partial b_k}
+=
+p_k-y_k
+}
+$$
+
+---
+
+# 15. Matrix form of the gradient
+
+For the whole dataset:
+
+$$
+Z=XW+b
+$$
+
+Let:
+
+$$
+P=\text{softmax}(Z)
+$$
+
+and $Y$ be the one-hot encoded target matrix.
+
+Then:
+
+$$
+\boxed{
+\frac{\partial L}{\partial W}
+=
+\frac{1}{m}X^T(P-Y)
+}
+$$
+
+and:
+
+$$
+\boxed{
+\frac{\partial L}{\partial b}
+=
+\frac{1}{m}\sum_{i=1}^{m}(P_i-Y_i)
+}
+$$
+
+These are the equations you would actually implement for gradient descent.
+
+---
+
+# 16. Gradient Descent
+
+Once we have the gradients:
+
+$$
+W:=W-\alpha\frac{\partial L}{\partial W}
+$$
+
+$$
+b:=b-\alpha\frac{\partial L}{\partial b}
+$$
+
+where:
+
+$$
+\alpha
+$$
+
+is the learning rate.
+
+The training process becomes:
+
+```text
+Initialize W and b
+
+        ↓
+
+Calculate logits
+Z = XW + b
+
+        ↓
+
+Calculate softmax
+P = softmax(Z)
+
+        ↓
+
+Calculate loss
+
+        ↓
+
+Calculate gradients
+dW = Xᵀ(P - Y) / m
+db = mean(P - Y)
+
+        ↓
+
+Update parameters
+W = W - αdW
+b = b - αdb
+
+        ↓
+
+Repeat
+```
+
+---
+
+# 17. Numerical Stability
+
+There is an important practical issue with softmax.
+
+Suppose:
+
+$$
+z=[1000,1001,1002]
+$$
+
+Computing:
+
+$$
+e^{1000}
+$$
+
+can overflow.
+
+But we can exploit an important property.
+
+Subtract the maximum logit:
+
+$$
+z' = z-\max(z)
+$$
+
+So:
+
+$$
+z'=[-2,-1,0]
+$$
+
+Then calculate:
+
+$$
+softmax(z')
+$$
+
+This gives exactly the same probabilities.
+
+Therefore the stable implementation is:
+
+$$
+\boxed{
+softmax(z)_k=
+\frac{e^{z_k-\max(z)}}
+{\sum_j e^{z_j-\max(z)}}
+}
+$$
+
+This is the standard numerical-stability trick.
+
+---
+
+# 18. Why subtracting max doesn't change softmax
+
+Suppose:
+
+$$
+z'_k=z_k-c
+$$
+
+Then:
+
+$$
+\frac{e^{z_k-c}}
+{\sum_j e^{z_j-c}}
+$$
+
+Using:
+
+$$
+e^{z_k-c}=e^{z_k}e^{-c}
+$$
+
+we get:
+
+$$
+\frac{e^{z_k}e^{-c}}
+{\sum_j e^{z_j}e^{-c}}
+$$
+
+The $e^{-c}$ cancels:
+
+$$
+=
+\frac{e^{z_k}}
+{\sum_j e^{z_j}}
+$$
+
+So probabilities remain unchanged.
+
+---
+
+# 19. Softmax vs Sigmoid
+
+This distinction is very important.
+
+### Binary classification
+
+Use sigmoid:
+
+$$
+P(y=1)=\sigma(z)
+$$
+
+Example:
+
+```text
+Cat vs Dog
+```
+
+---
+
+### Multiclass classification
+
+Use softmax:
+
+$$
+P(y=k)=
+\frac{e^{z_k}}
+{\sum_j e^{z_j}}
+$$
+
+Example:
+
+```text
+Cat
+Dog
+Horse
+```
+
+Only one class is correct.
+
+---
+
+### Multilabel classification
+
+This is different.
+
+Suppose an image can contain:
+
+```text
+Dog
+Car
+Person
+```
+
+simultaneously.
+
+Then you generally use **one sigmoid per class**, not softmax.
+
+For example:
+
+$$
+P(\text{dog})=0.9
+$$
+
+$$
+P(\text{car})=0.8
+$$
+
+$$
+P(\text{person})=0.7
+$$
+
+These probabilities don't need to sum to 1.
+
+---
+
+# 20. Softmax vs Multilabel Sigmoid
+
+| Problem | Activation | Output |
+|---|---|---|
+| Binary classification | Sigmoid | One probability |
+| Multiclass classification | Softmax | Probabilities sum to 1 |
+| Multilabel classification | Sigmoid | Independent probabilities |
+
+Remember:
+
+> **Softmax = mutually exclusive classes**
+
+> **Sigmoid = independent classes**
+
+---
+
+# 21. Decision Boundaries
+
+Softmax regression is still a **linear model**.
+
+For each class:
+
+$$
+z_k=w_k^Tx+b_k
+$$
+
+The model chooses:
+
+$$
+\hat y=\arg\max_k z_k
+$$
+
+Notice something interesting:
+
+Because softmax is monotonically increasing,
+
+$$
+\arg\max_k P_k
+=
+\arg\max_k z_k
+$$
+
+So we could simply compare the logits.
+
+For two classes, the boundary between class $i$ and class $j$ occurs when:
+
+$$
+z_i=z_j
+$$
+
+Therefore:
+
+$$
+w_i^Tx+b_i
+=
+w_j^Tx+b_j
+$$
+
+Rearranging:
+
+$$
+(w_i-w_j)^Tx+(b_i-b_j)=0
+$$
+
+This is a **linear decision boundary**.
+
+---
