@@ -1029,3 +1029,414 @@ $$
 this is called **Laplace smoothing**.
 
 ---
+
+# 20. Log Probability
+
+There is another important computational issue.
+
+Suppose we have hundreds or thousands of features:
+
+$$
+P(C)
+P(x_1|C)
+P(x_2|C)
+\cdots
+P(x_n|C)
+$$
+
+Multiplying many small probabilities can produce extremely tiny numbers.
+
+For example:
+
+$$
+0.001\times0.002\times0.0001\times\cdots
+$$
+
+can eventually become so small that a computer represents it as approximately zero.
+
+This is called **underflow**.
+
+---
+
+# 21. Log Transformation
+
+Instead of multiplying probabilities, we take logarithms.
+
+Original:
+
+$$
+P(C)\prod_iP(x_i|C)
+$$
+
+Take log:
+
+$$
+\log P(C)+
+\sum_i\log P(x_i|C)
+$$
+
+Therefore:
+
+$$
+\boxed{
+\log Score(C)
+=
+\log P(C)
++
+\sum_i\log P(x_i|C)
+}
+$$
+
+The class with the largest original probability also has the largest log probability because logarithm is a monotonically increasing function.
+
+So:
+
+$$
+\arg\max_C
+P(C)\prod_iP(x_i|C)
+$$
+
+is equivalent to:
+
+$$
+\boxed{
+\arg\max_C
+\left[
+\log P(C)
++
+\sum_i\log P(x_i|C)
+\right]
+}
+$$
+
+This is how probability calculations are often handled internally.
+
+---
+
+# 22. Types of Naive Bayes
+
+Different Naive Bayes algorithms use different assumptions for calculating:
+
+$$
+P(x_i|C)
+$$
+
+## 22.1 Gaussian Naive Bayes
+
+Used mainly for **continuous numerical features**.
+
+Examples:
+
+- Age
+- Height
+- Temperature
+- Salary
+- Blood pressure
+
+It assumes each feature follows a Gaussian/normal distribution within each class.
+
+$$
+\boxed{
+P(x_i|C)
+=
+\frac{1}
+{\sqrt{2\pi\sigma_C^2}}
+e^{-\frac{(x_i-\mu_C)^2}{2\sigma_C^2}}
+}
+$$
+
+where:
+
+- $\mu_C$ = mean for feature in class $C$
+- $\sigma_C^2$ = variance
+
+---
+
+## 22.2 Multinomial Naive Bayes
+
+Commonly used for:
+
+- Text classification
+- Spam detection
+- Document classification
+- NLP
+
+It works particularly well with **word counts/frequencies**.
+
+Example:
+
+```text
+free → 10
+offer → 5
+money → 3
+```
+
+---
+
+## 22.3 Bernoulli Naive Bayes
+
+Used when features are binary:
+
+$$
+x_i\in\{0,1\}
+$$
+
+For example:
+
+```text
+contains_free = 1
+contains_offer = 1
+contains_money = 0
+```
+
+It cares about whether a feature occurs or not.
+
+---
+
+## 22.4 Categorical Naive Bayes
+
+Used for categorical variables.
+
+For example:
+
+```text
+Weather = Sunny
+Day = Weekday
+Temperature = High
+```
+
+The model estimates probabilities such as:
+
+$$
+P(Sunny|Class=A)
+$$
+
+---
+
+# 23. Naive Bayes Training
+
+One of the nice properties of Naive Bayes is that training is relatively simple.
+
+Suppose:
+
+```text
+X = features
+y = class labels
+```
+
+Training essentially involves estimating:
+
+### Step 1 — Class priors
+
+$$
+P(C)
+$$
+
+### Step 2 — Feature likelihoods
+
+$$
+P(x_i|C)
+$$
+
+### Step 3 — Apply smoothing if necessary
+
+Then classification uses:
+
+$$
+P(C|X)
+\propto
+P(C)\prod_iP(x_i|C)
+$$
+
+There is typically **no gradient descent** involved.
+
+---
+
+# 24. Naive Bayes vs Logistic Regression
+
+This distinction is useful because you've recently been studying Logistic Regression.
+
+| Naive Bayes | Logistic Regression |
+|---|---|
+| Generative model | Discriminative model |
+| Models $P(X|C)$ and $P(C)$ | Directly models $P(C|X)$ |
+| Based on Bayes theorem | Based on sigmoid/softmax |
+| Strong independence assumption | No naive independence assumption |
+| Usually very fast | Usually requires optimization |
+| Good for text classification | Good general-purpose classifier |
+| Works well with small datasets | Often benefits from more data |
+| Can train very quickly | Uses iterative optimization |
+
+The conceptual difference is:
+
+### Naive Bayes
+
+$$
+\boxed{
+P(C|X)
+\leftarrow
+P(X|C)P(C)
+}
+$$
+
+It asks:
+
+> How likely is this data under each class?
+
+### Logistic Regression
+
+It directly learns:
+
+$$
+\boxed{
+P(C|X)
+}
+$$
+
+It asks:
+
+> Given these features, what is the probability of each class?
+
+---
+
+# 25. The Complete Naive Bayes Mathematical Picture
+
+Start with Bayes theorem:
+
+$$
+P(C|X)
+=
+\frac{P(X|C)P(C)}
+{P(X)}
+$$
+
+Represent the features:
+
+$$
+X=(x_1,x_2,\ldots,x_n)
+$$
+
+Therefore:
+
+$$
+P(C|x_1,\ldots,x_n)
+=
+\frac{
+P(x_1,\ldots,x_n|C)P(C)
+}
+{P(x_1,\ldots,x_n)}
+$$
+
+Naive conditional independence assumption:
+
+$$
+P(x_1,\ldots,x_n|C)
+=
+\prod_{i=1}^{n}P(x_i|C)
+$$
+
+Therefore:
+
+$$
+\boxed{
+P(C|x_1,\ldots,x_n)
+=
+\frac{
+P(C)\prod_{i=1}^{n}P(x_i|C)
+}
+{
+P(x_1,\ldots,x_n)
+}
+}
+$$
+
+For classification, denominator is ignored:
+
+$$
+\boxed{
+\hat C
+=
+\arg\max_C
+P(C)
+\prod_{i=1}^{n}P(x_i|C)
+}
+$$
+
+And for numerical stability:
+
+$$
+\boxed{
+\hat C
+=
+\arg\max_C
+\left[
+\log P(C)
++
+\sum_{i=1}^{n}\log P(x_i|C)
+\right]
+}
+$$
+
+This is the **core mathematical foundation of Naive Bayes**.
+
+---
+
+# 26. The Intuition You Should Remember
+
+Think of Naive Bayes as a **probability score calculator**.
+
+For every possible class:
+
+### 1. Start with how common the class is
+
+$$
+P(C)
+$$
+
+### 2. Look at each feature
+
+$$
+P(x_1|C),P(x_2|C),\ldots
+$$
+
+### 3. Combine them
+
+$$
+P(C)\prod_iP(x_i|C)
+$$
+
+### 4. Compare all classes
+
+### 5. Choose the largest score
+
+$$
+\boxed{
+\text{Prediction}
+=
+\text{class with highest posterior probability}
+}
+$$
+
+---
+
+## One-line mental model
+
+> **Naive Bayes = Prior × Likelihood of all features → Posterior → Highest probability wins.**
+
+The three words you should be completely comfortable with are:
+
+$$
+\boxed{
+\text{Prior} \rightarrow \text{Likelihood} \rightarrow \text{Posterior}
+}
+$$
+
+And the central assumption is:
+
+$$
+\boxed{
+\text{Features are conditionally independent given the class}
+}
+$$
+
+That assumption is why it is called **Naive** Bayes.
