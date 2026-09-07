@@ -1472,3 +1472,343 @@ then:
 then majority voting.
 
 ---
+
+# 46. KNN Mathematical Algorithm
+
+Given training dataset:
+
+$$
+D=\{(x_i,y_i)\}_{i=1}^{n}
+$$
+
+and new point:
+
+$$
+x
+$$
+
+### Step 1
+
+Calculate:
+
+$$
+d(x,x_i)
+$$
+
+for every training point.
+
+### Step 2
+
+Sort:
+
+$$
+d_1\leq d_2\leq ...\leq d_n
+$$
+
+### Step 3
+
+Select:
+
+$$
+N_k(x)
+$$
+
+the K closest points.
+
+### Classification
+
+$$
+\hat y=
+\operatorname{mode}
+\{y_i:x_i\in N_k(x)\}
+$$
+
+### Regression
+
+$$
+\hat y=
+\frac{1}{k}
+\sum_{x_i\in N_k(x)}y_i
+$$
+
+---
+
+# 47. Distance-Weighted Regression
+
+Instead of simple averaging:
+
+$$
+\hat y=
+\frac{1}{k}\sum y_i
+$$
+
+we can weight neighbors according to distance:
+
+$$
+w_i=\frac{1}{d_i}
+$$
+
+Then:
+
+$$
+\hat y=
+\frac{
+\sum_i w_i y_i
+}{
+\sum_i w_i
+}
+$$
+
+So:
+
+```text
+closer → stronger influence
+farther → weaker influence
+```
+
+---
+
+# 48. Advantages of KNN
+
+### 1. Simple
+
+Very easy to understand.
+
+### 2. Little training
+
+There is almost no traditional model-fitting stage.
+
+### 3. Nonlinear
+
+Can model complicated decision boundaries.
+
+### 4. Classification + Regression
+
+Works for both.
+
+### 5. Flexible
+
+Can use different distance metrics.
+
+### 6. Good baseline
+
+Excellent algorithm to try early in a project.
+
+---
+
+# 49. Disadvantages of KNN
+
+### 1. Slow prediction
+
+Searching for neighbors can become expensive.
+
+### 2. Memory intensive
+
+Training examples must be retained.
+
+### 3. Sensitive to scaling
+
+Different feature scales can completely distort distances.
+
+### 4. Sensitive to irrelevant features
+
+Irrelevant features affect distance calculations.
+
+### 5. Curse of dimensionality
+
+Performance can degrade as the number of features grows.
+
+### 6. Sensitive to K
+
+Bad K can cause overfitting or underfitting.
+
+### 7. Sensitive to data density
+
+Different regions may have very different numbers of observations.
+
+---
+
+# 50. When Should You Use KNN?
+
+KNN is a good choice when:
+
+- Dataset is relatively small/moderate
+- Number of features isn't extremely large
+- Similar observations tend to have similar labels
+- Decision boundary may be nonlinear
+- You need a simple baseline
+- Prediction latency isn't extremely critical
+
+Examples include:
+
+- Pattern recognition
+- Recommendation-like similarity tasks
+- Image classification on suitable feature representations
+- Small classification datasets
+- Local regression
+- Anomaly/similarity analysis
+
+Nearest-neighbor methods have historically been used in problems including handwritten digits and satellite-image scenes. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+
+---
+
+# 51. When Should You Avoid KNN?
+
+Be careful when:
+
+```text
+Millions of samples
++
+Thousands of features
++
+Real-time prediction requirements
+```
+
+This is generally not an ideal situation for vanilla KNN.
+
+Also avoid blindly applying KNN to raw features when:
+
+- features have wildly different scales
+- many irrelevant features exist
+- dimensionality is very high
+- data contains substantial noise
+
+---
+
+# 52. KNN Workflow You Should Remember
+
+For a practical ML project:
+
+```text
+             Dataset
+                ↓
+         Train / Test Split
+                ↓
+          Feature Selection
+                ↓
+          Feature Scaling
+                ↓
+       Choose distance metric
+                ↓
+          Choose candidate K
+                ↓
+        Cross Validation
+                ↓
+         Select best K
+                ↓
+          Train KNN
+                ↓
+          Test Model
+                ↓
+       Evaluate Performance
+```
+
+---
+
+# 53. Most Important Concepts to Remember
+
+If you're preparing your ML fundamentals, make sure you understand these particularly well:
+
+### Core
+
+$$
+\boxed{\text{KNN = Find K closest training points}}
+$$
+
+### Classification
+
+$$
+\boxed{\text{Majority vote}}
+$$
+
+### Regression
+
+$$
+\boxed{\text{Average of neighbors}}
+$$
+
+### Distance
+
+$$
+\boxed{
+d(x,y)=\sqrt{\sum_i(x_i-y_i)^2}
+}
+$$
+
+### Small K
+
+$$
+\boxed{\text{Low bias, high variance}}
+$$
+
+### Large K
+
+$$
+\boxed{\text{High bias, low variance}}
+$$
+
+### Scaling
+
+$$
+\boxed{\text{Usually essential}}
+$$
+
+### Main problem
+
+$$
+\boxed{\text{Curse of dimensionality}}
+$$
+
+### Main characteristic
+
+$$
+\boxed{\text{Lazy / instance-based learning}}
+$$
+
+---
+
+## 54. A Good Practical KNN Template
+
+For your sklearn-based ML work, I'd start with:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("knn", KNeighborsClassifier())
+])
+
+param_grid = {
+    "knn__n_neighbors": [3, 5, 7, 9, 11, 15, 21],
+    "knn__weights": ["uniform", "distance"],
+    "knn__metric": ["euclidean", "manhattan"]
+}
+
+grid = GridSearchCV(
+    pipeline,
+    param_grid,
+    cv=5,
+    scoring="accuracy"
+)
+
+grid.fit(X_train, y_train)
+
+print("Best Parameters:", grid.best_params_)
+print("Best CV Score:", grid.best_score_)
+
+y_pred = grid.predict(X_test)
+```
+
+This combines the most important practical ideas:
+
+**scaling → K selection → distance metric → weighting → cross-validation.**
+
+For reference, the current scikit-learn documentation exposes `KNeighborsClassifier`, `KNeighborsRegressor`, and `NearestNeighbors` under `sklearn.neighbors`. ([scikit-learn](https://scikit-learn.org/stable/api/sklearn.neighbors.html))
+
+### One-line intuition
+
+> **KNN doesn't try to learn a complicated equation; it says, "Tell me who your closest neighbors are, and I'll use their behavior to predict you."**
