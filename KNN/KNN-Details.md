@@ -678,3 +678,437 @@ KNN doesn't have to use only Euclidean distance.
 Scikit-learn supports multiple distance metrics, with the default being Minkowski distance with `p=2`, which corresponds to Euclidean distance. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html?utm_source=chatgpt.com))
 
 ---
+
+## 17.1 Euclidean Distance
+
+$$
+d=
+\sqrt{
+\sum_i(x_i-y_i)^2
+}
+$$
+
+Example:
+
+```text
+metric="euclidean"
+```
+
+Good general-purpose choice.
+
+---
+
+# 18. Manhattan Distance
+
+Also called:
+
+$$
+L_1
+$$
+
+distance.
+
+Formula:
+
+$$
+d=
+\sum_i|x_i-y_i|
+$$
+
+For two dimensions:
+
+$$
+d=
+|x_1-y_1|+
+|x_2-y_2|
+$$
+
+Example:
+
+```python
+KNeighborsClassifier(
+    n_neighbors=5,
+    metric="manhattan"
+)
+```
+
+---
+
+# 19. Minkowski Distance
+
+Minkowski is a generalization.
+
+$$
+d=
+\left(
+\sum_i |x_i-y_i|^p
+\right)^{1/p}
+$$
+
+When:
+
+$$
+p=1
+$$
+
+we get Manhattan distance.
+
+When:
+
+$$
+p=2
+$$
+
+we get Euclidean distance.
+
+In scikit-learn, `p=2` is the default when using the Minkowski metric. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+
+---
+
+# 20. Distance-Weighted KNN
+
+Normally, all K neighbors have equal influence.
+
+For example:
+
+```text
+Neighbor 1 → distance 1
+Neighbor 2 → distance 5
+Neighbor 3 → distance 10
+```
+
+With uniform weighting:
+
+```text
+1 → equal importance
+5 → equal importance
+10 → equal importance
+```
+
+But that doesn't always make sense.
+
+The point at distance `1` should arguably matter more.
+
+So we can use:
+
+```python
+weights="distance"
+```
+
+Scikit-learn implements distance weighting using greater influence for closer points. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+
+Conceptually:
+
+$$
+w_i=\frac{1}{d_i}
+$$
+
+Therefore:
+
+```text
+closer point
+     ↓
+higher weight
+     ↓
+greater influence
+```
+
+---
+
+# 21. Uniform vs Distance Weighting
+
+### Uniform
+
+```python
+weights="uniform"
+```
+
+Every neighbor has equal influence.
+
+### Distance
+
+```python
+weights="distance"
+```
+
+Closer neighbors have greater influence.
+
+Example:
+
+```python
+knn = KNeighborsClassifier(
+    n_neighbors=5,
+    weights="distance"
+)
+```
+
+---
+
+# 22. Important KNN Hyperparameters
+
+For `KNeighborsClassifier`, the important parameters include `n_neighbors`, `weights`, `algorithm`, `leaf_size`, `p`, `metric`, and `n_jobs`. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+
+| Parameter | Meaning |
+|---|---|
+| `n_neighbors` | Number of neighbors |
+| `weights` | How neighbors influence prediction |
+| `metric` | Distance metric |
+| `p` | Minkowski power |
+| `algorithm` | Neighbor search algorithm |
+| `leaf_size` | Tree optimization parameter |
+| `n_jobs` | Parallel processing |
+
+---
+
+# 23. `n_neighbors`
+
+```python
+KNeighborsClassifier(n_neighbors=5)
+```
+
+Controls K.
+
+Typical values to test:
+
+```text
+1
+3
+5
+7
+9
+11
+15
+21
+...
+```
+
+But don't blindly choose these. Use validation/cross-validation.
+
+---
+
+# 24. `weights`
+
+```python
+weights="uniform"
+```
+
+or:
+
+```python
+weights="distance"
+```
+
+### Uniform
+
+All neighbors equal.
+
+### Distance
+
+Closer neighbors have greater influence.
+
+---
+
+# 25. `metric`
+
+Examples:
+
+```python
+metric="euclidean"
+```
+
+```python
+metric="manhattan"
+```
+
+```python
+metric="minkowski"
+```
+
+There are also other metrics available depending on the data and implementation. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html?utm_source=chatgpt.com))
+
+---
+
+# 26. `p`
+
+Used with Minkowski distance.
+
+```python
+p=1
+```
+
+means Manhattan.
+
+```python
+p=2
+```
+
+means Euclidean.
+
+Example:
+
+```python
+knn = KNeighborsClassifier(
+    n_neighbors=5,
+    p=2
+)
+```
+
+---
+
+# 27. `algorithm`
+
+Scikit-learn provides:
+
+```text
+auto
+ball_tree
+kd_tree
+brute
+```
+
+([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+
+### `brute`
+
+Calculate distances against points directly.
+
+### `KDTree`
+
+Uses a spatial tree structure.
+
+### `BallTree`
+
+Another tree-based spatial structure.
+
+### `auto`
+
+Scikit-learn chooses an appropriate approach.
+
+Usually:
+
+```python
+algorithm="auto"
+```
+
+is a reasonable starting point.
+
+---
+
+# 28. Why Does KNN Have Expensive Prediction?
+
+Imagine:
+
+```text
+Training samples = 1,000,000
+```
+
+For a new sample, the algorithm may need to find its nearest neighbors among a huge number of training points.
+
+Therefore:
+
+### Training
+
+Very cheap.
+
+### Prediction
+
+Potentially expensive.
+
+This is almost the opposite of many parametric algorithms.
+
+---
+
+# 29. Brute Force KNN
+
+The simplest approach:
+
+```text
+New point
+    ↓
+Calculate distance to point 1
+Calculate distance to point 2
+Calculate distance to point 3
+...
+Calculate distance to point N
+    ↓
+Sort
+    ↓
+Choose K
+```
+
+For large datasets this can become expensive.
+
+---
+
+# 30. KD Tree
+
+A **KD Tree** organizes points into a tree structure to make neighbor searches faster in suitable low-dimensional settings.
+
+Conceptually:
+
+```text
+             Root
+           /      \
+        Region   Region
+        /   \     /   \
+       ...  ...  ...  ...
+```
+
+Instead of checking every point, some regions can be eliminated from consideration.
+
+---
+
+# 31. Ball Tree
+
+Ball Tree organizes data into nested regions, often represented as hyperspheres/balls.
+
+Conceptually:
+
+```text
+        Large Ball
+       /          \
+   Ball A        Ball B
+   /   \         /   \
+ ...
+```
+
+It can be useful for certain metrics and datasets.
+
+---
+
+# 32. Curse of Dimensionality
+
+This is a **major issue with KNN**.
+
+Suppose:
+
+```text
+2 features
+```
+
+Distance works nicely.
+
+But now imagine:
+
+```text
+1000 features
+```
+
+Distances become less informative.
+
+As dimensionality increases:
+
+- Data becomes sparse
+- Distances become less discriminative
+- Nearest and farthest points can become relatively similar
+- Computational cost increases
+
+This is known as the:
+
+$$
+\boxed{\text{Curse of Dimensionality}}
+$$
+
+Scikit-learn specifically notes that neighbor methods become less effective in high-dimensional parameter spaces. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+
+---
