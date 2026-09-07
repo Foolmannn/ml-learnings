@@ -1112,3 +1112,363 @@ $$
 Scikit-learn specifically notes that neighbor methods become less effective in high-dimensional parameter spaces. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
 
 ---
+
+# 33. Why High Dimensions Hurt KNN
+
+Imagine:
+
+```text
+2D
+
+● ● ●
+  ●
+● ● ●
+```
+
+There are plenty of nearby points.
+
+Now imagine:
+
+```text
+100 dimensions
+```
+
+The space becomes enormous.
+
+Your data might look like:
+
+```text
+●                       ●
+
+          ●
+
+                         ●
+
+     ●
+```
+
+The concept of "nearby" becomes less meaningful.
+
+This is one reason KNN is often better for **low-to-moderate dimensional datasets**.
+
+---
+
+# 34. KNN and Outliers
+
+KNN can be affected by outliers, especially when:
+
+```text
+K is small
+```
+
+For example:
+
+```text
+A A A A A A
+       X
+```
+
+If `X` is an unusual point close to a query point, it can influence the prediction.
+
+Using a somewhat larger K or distance weighting can sometimes help, but the best solution depends on the dataset.
+
+---
+
+# 35. KNN Decision Boundary
+
+One interesting property of KNN is that it can create **nonlinear decision boundaries**.
+
+For example, suppose the classes look like:
+
+```text
+      A A A
+   A       A
+  A    B    A
+   A       A
+      A A A
+```
+
+A linear classifier may struggle.
+
+KNN can naturally create irregular boundaries because it makes local decisions.
+
+This is one reason nearest-neighbor methods can work well when the decision boundary is highly irregular. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+
+---
+
+# 36. KNN vs Logistic Regression
+
+| Property | KNN | Logistic Regression |
+|---|---|---|
+| Learning style | Instance-based | Parametric |
+| Training | Very fast | Moderate |
+| Prediction | Can be slow | Fast |
+| Scaling important | Yes | Usually yes |
+| Nonlinear boundary | Naturally possible | Requires transformations |
+| Interpretability | Moderate | High |
+| High dimensions | Often problematic | Can work better |
+| Large datasets | Can struggle | Generally better |
+
+---
+
+# 37. KNN vs Decision Tree
+
+| Property | KNN | Decision Tree |
+|---|---|---|
+| Scaling | Important | Usually unnecessary |
+| Training | Very fast | Fast |
+| Prediction | Potentially expensive | Fast |
+| Nonlinear | Yes | Yes |
+| Interpretability | Moderate | High |
+| High dimensionality | Problematic | Often better |
+| Outliers | Can affect | Depends |
+
+---
+
+# 38. KNN vs SVM
+
+| Property | KNN | SVM |
+|---|---|---|
+| Training | Easy | More computational |
+| Prediction | Potentially expensive | Usually efficient after training |
+| Scaling | Important | Important |
+| Nonlinear | Naturally local | With kernels |
+| Large datasets | Can struggle | Can also struggle depending on setup |
+| Interpretability | Moderate | Low/Moderate |
+
+---
+
+# 39. KNN Classification in Scikit-Learn
+
+Here's the basic implementation:
+
+```python
+from sklearn.neighbors import KNeighborsClassifier
+
+knn = KNeighborsClassifier(
+    n_neighbors=5
+)
+
+knn.fit(X_train, y_train)
+
+y_pred = knn.predict(X_test)
+```
+
+---
+
+# 40. Complete KNN Pipeline
+
+For real projects, I'd recommend a pipeline:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("knn", KNeighborsClassifier(n_neighbors=5))
+])
+
+pipeline.fit(X_train, y_train)
+
+y_pred = pipeline.predict(X_test)
+```
+
+This is cleaner because scaling and KNN become one workflow.
+
+---
+
+# 41. KNN Regression
+
+```python
+from sklearn.neighbors import KNeighborsRegressor
+
+knn = KNeighborsRegressor(
+    n_neighbors=5
+)
+
+knn.fit(X_train, y_train)
+
+y_pred = knn.predict(X_test)
+```
+
+For regression:
+
+```python
+weights="uniform"
+```
+
+means the neighbors contribute equally, while:
+
+```python
+weights="distance"
+```
+
+gives greater influence to nearby points. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+
+---
+
+# 42. KNN with Pipeline for Regression
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsRegressor
+
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("knn", KNeighborsRegressor(
+        n_neighbors=5,
+        weights="distance"
+    ))
+])
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+```
+
+---
+
+# 43. Finding the Best K
+
+You can use `GridSearchCV`.
+
+```python
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("knn", KNeighborsClassifier())
+])
+
+param_grid = {
+    "knn__n_neighbors": [3, 5, 7, 9, 11, 15, 21],
+    "knn__weights": ["uniform", "distance"],
+    "knn__metric": ["euclidean", "manhattan"]
+}
+
+grid = GridSearchCV(
+    pipeline,
+    param_grid,
+    cv=5,
+    scoring="accuracy"
+)
+
+grid.fit(X_train, y_train)
+
+print(grid.best_params_)
+print(grid.best_score_)
+```
+
+This is much better than manually guessing K.
+
+---
+
+# 44. KNN Probability
+
+KNN can also produce class probabilities.
+
+Example:
+
+```python
+knn.predict_proba(X_test)
+```
+
+Suppose:
+
+```text
+K = 5
+```
+
+and neighbors are:
+
+```text
+Class A → 4
+Class B → 1
+```
+
+Then approximately:
+
+$$
+P(A)=\frac45=0.8
+$$
+
+$$
+P(B)=\frac15=0.2
+$$
+
+Scikit-learn's `predict_proba()` returns class probability estimates based on the neighbor voting process. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+
+---
+
+# 45. KNN from Scratch
+
+Understanding the algorithm manually is extremely useful.
+
+```python
+import numpy as np
+
+class KNN:
+
+    def __init__(self, k=3):
+        self.k = k
+
+    def fit(self, X, y):
+        self.X_train = X
+        self.y_train = y
+
+    def predict(self, X):
+
+        predictions = []
+
+        for x in X:
+
+            distances = np.sqrt(
+                np.sum(
+                    (self.X_train - x) ** 2,
+                    axis=1
+                )
+            )
+
+            k_indices = np.argsort(distances)[:self.k]
+
+            k_labels = self.y_train[k_indices]
+
+            values, counts = np.unique(
+                k_labels,
+                return_counts=True
+            )
+
+            prediction = values[np.argmax(counts)]
+
+            predictions.append(prediction)
+
+        return np.array(predictions)
+```
+
+The important part is:
+
+```python
+distances = ...
+```
+
+then:
+
+```python
+np.argsort(distances)
+```
+
+then:
+
+```python
+[:self.k]
+```
+
+then majority voting.
+
+---
