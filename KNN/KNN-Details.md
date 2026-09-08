@@ -11,7 +11,7 @@ The core idea is:
 
 > **Similar data points tend to have similar outputs.**
 
-For a new data point, KNN looks at the **K closest training examples** and uses them to make a prediction. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+For a new data point, KNN looks at the **K closest training examples** and uses them to make a prediction. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -113,7 +113,7 @@ $$
 
 But KNN doesn't really construct such a predictive model.
 
-It essentially **stores the training data** and waits until prediction time to find neighboring samples. Scikit-learn describes nearest-neighbor methods as "non-generalizing" methods because they remember the training instances rather than learning a conventional parametric model. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+It essentially **stores the training data** and waits until prediction time to find neighboring samples. Scikit-learn describes nearest-neighbor methods as "non-generalizing" methods because they remember the training instances rather than learning a conventional parametric model. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 Therefore:
 
@@ -163,7 +163,7 @@ For regression:
 
 > Average of neighbors
 
-Scikit-learn uses majority voting for classification and the mean of neighboring target values for regression. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+Scikit-learn uses majority voting for classification and the mean of neighboring target values for regression. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -368,7 +368,7 @@ $$
 \boxed{Prediction=A}
 $$
 
-The standard `KNeighborsClassifier` in scikit-learn implements this nearest-neighbor voting approach. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+The standard `KNeighborsClassifier` in scikit-learn implements this nearest-neighbor voting approach. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier))
 
 ---
 
@@ -419,7 +419,7 @@ $$
 \boxed{\text{Mean}}
 $$
 
-Scikit-learn's `KNeighborsRegressor` follows this mean-based approach by default. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+Scikit-learn's `KNeighborsRegressor` follows this mean-based approach by default. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -509,7 +509,7 @@ $$
 \boxed{\text{Large K → Higher Bias + Lower Variance}}
 $$
 
-Scikit-learn similarly notes that larger `k` tends to suppress noise but produces less distinct decision boundaries. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+Scikit-learn similarly notes that larger `k` tends to suppress noise but produces less distinct decision boundaries. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -675,7 +675,7 @@ Do **not** fit the scaler separately on test data.
 
 KNN doesn't have to use only Euclidean distance.
 
-Scikit-learn supports multiple distance metrics, with the default being Minkowski distance with `p=2`, which corresponds to Euclidean distance. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html?utm_source=chatgpt.com))
+Scikit-learn supports multiple distance metrics, with the default being Minkowski distance with `p=2`, which corresponds to Euclidean distance. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html))
 
 ---
 
@@ -761,7 +761,7 @@ $$
 
 we get Euclidean distance.
 
-In scikit-learn, `p=2` is the default when using the Minkowski metric. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+In scikit-learn, `p=2` is the default when using the Minkowski metric. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier))
 
 ---
 
@@ -795,7 +795,7 @@ So we can use:
 weights="distance"
 ```
 
-Scikit-learn implements distance weighting using greater influence for closer points. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+Scikit-learn implements distance weighting using greater influence for closer points. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier))
 
 Conceptually:
 
@@ -846,7 +846,7 @@ knn = KNeighborsClassifier(
 
 # 22. Important KNN Hyperparameters
 
-For `KNeighborsClassifier`, the important parameters include `n_neighbors`, `weights`, `algorithm`, `leaf_size`, `p`, `metric`, and `n_jobs`. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+For `KNeighborsClassifier`, the important parameters include `n_neighbors`, `weights`, `algorithm`, `leaf_size`, `p`, `metric`, and `n_jobs`. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier))
 
 | Parameter | Meaning |
 |---|---|
@@ -924,7 +924,7 @@ metric="manhattan"
 metric="minkowski"
 ```
 
-There are also other metrics available depending on the data and implementation. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html?utm_source=chatgpt.com))
+There are also other metrics available depending on the data and implementation. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.NearestNeighbors.html))
 
 ---
 
@@ -966,7 +966,7 @@ kd_tree
 brute
 ```
 
-([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier))
 
 ### `brute`
 
@@ -1109,7 +1109,7 @@ $$
 \boxed{\text{Curse of Dimensionality}}
 $$
 
-Scikit-learn specifically notes that neighbor methods become less effective in high-dimensional parameter spaces. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+Scikit-learn specifically notes that neighbor methods become less effective in high-dimensional parameter spaces. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -1192,7 +1192,7 @@ A linear classifier may struggle.
 
 KNN can naturally create irregular boundaries because it makes local decisions.
 
-This is one reason nearest-neighbor methods can work well when the decision boundary is highly irregular. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+This is one reason nearest-neighbor methods can work well when the decision boundary is highly irregular. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -1305,7 +1305,7 @@ means the neighbors contribute equally, while:
 weights="distance"
 ```
 
-gives greater influence to nearby points. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+gives greater influence to nearby points. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
@@ -1402,7 +1402,7 @@ $$
 P(B)=\frac15=0.2
 $$
 
-Scikit-learn's `predict_proba()` returns class probability estimates based on the neighbor voting process. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier?utm_source=chatgpt.com))
+Scikit-learn's `predict_proba()` returns class probability estimates based on the neighbor voting process. ([scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier))
 
 ---
 
@@ -1648,7 +1648,7 @@ Examples include:
 - Local regression
 - Anomaly/similarity analysis
 
-Nearest-neighbor methods have historically been used in problems including handwritten digits and satellite-image scenes. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html?utm_source=chatgpt.com))
+Nearest-neighbor methods have historically been used in problems including handwritten digits and satellite-image scenes. ([scikit-learn](https://scikit-learn.org/stable/modules/neighbors.html))
 
 ---
 
