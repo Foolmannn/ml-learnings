@@ -1006,3 +1006,1063 @@ Right:
 The values within each group are relatively similar.
 
 ---
+
+# 27. Regression Tree Prediction
+
+Suppose a leaf contains:
+
+```text
+10
+12
+11
+```
+
+The predicted value is generally:
+
+$$
+\frac{10+12+11}{3}
+$$
+
+$$
+=\boxed{11}
+$$
+
+So a regression tree often predicts the **mean target value of the samples in the leaf**.
+
+---
+
+# 28. Mean Squared Error in Regression Trees
+
+A common criterion is:
+
+$$
+MSE =
+\frac{1}{n}
+\sum_{i=1}^{n}(y_i-\bar y)^2
+$$
+
+where:
+
+$$
+\bar y
+$$
+
+is the mean target value in that node.
+
+The algorithm searches for splits that reduce the resulting squared error.
+
+---
+
+# 29. Important Difference: Linear Regression vs Decision Tree
+
+Suppose:
+
+```text
+X → Y
+```
+
+Linear Regression assumes approximately:
+
+$$
+Y=\beta_0+\beta_1X
+$$
+
+So it creates a straight line.
+
+Decision Tree instead creates regions:
+
+```text
+Y
+│             ┌────────────
+│             │
+│      ┌──────┘
+│      │
+│──────┘
+└──────────────────── X
+```
+
+The prediction is **piecewise constant**.
+
+This makes Decision Trees capable of learning nonlinear relationships without explicitly adding polynomial features.
+
+---
+
+# 30. Decision Boundary
+
+For classification, Decision Trees create decision boundaries.
+
+For example:
+
+```text
+Feature 2
+   ↑
+   │       Class B
+   │       │
+   │       │
+───┼───────┼────────
+   │       │
+   │ Class A
+   │
+   └────────────────→ Feature 1
+```
+
+The boundaries are typically **axis-aligned** in standard Decision Trees.
+
+For example:
+
+```text
+Age < 30
+```
+
+rather than:
+
+```text
+Age + Income > 100
+```
+
+---
+
+# 31. Feature Scaling
+
+One major advantage of Decision Trees:
+
+> **Feature scaling is generally not required.**
+
+For example:
+
+```text
+Age: 20–60
+Salary: 20,000–200,000
+```
+
+You generally don't need:
+
+```python
+StandardScaler()
+```
+
+before training a Decision Tree.
+
+Why?
+
+Because trees primarily compare values against thresholds.
+
+Example:
+
+```text
+Age < 30
+Salary < 50000
+```
+
+Scaling doesn't fundamentally change the ordering of values.
+
+---
+
+# 32. Handling Categorical Variables
+
+Conceptually, Decision Trees can naturally work with categorical decisions.
+
+However, **scikit-learn's standard `DecisionTreeClassifier` does not directly accept ordinary string categories**.
+
+You typically encode categories first.
+
+For example:
+
+```text
+Color
+Red
+Blue
+Green
+```
+
+could be encoded using:
+
+```text
+One-hot encoding
+```
+
+or another appropriate encoding approach.
+
+Be careful with arbitrary label encoding because assigning:
+
+```text
+Red = 0
+Blue = 1
+Green = 2
+```
+
+can introduce an artificial ordering.
+
+---
+
+# 33. Missing Values
+
+Handling missing values depends on the implementation/version.
+
+A common practical approach is to preprocess missing values:
+
+```python
+SimpleImputer
+```
+
+For example:
+
+```python
+from sklearn.impute import SimpleImputer
+```
+
+Then:
+
+```text
+Missing values
+      ↓
+Imputation
+      ↓
+Decision Tree
+```
+
+---
+
+# 34. Decision Tree Algorithm — Complete Flow
+
+The overall process is:
+
+```text
+                Training Data
+                     ↓
+             Calculate impurity
+                     ↓
+       Search possible feature splits
+                     ↓
+             Find best split
+                     ↓
+              Create node
+                     ↓
+             Split the data
+                /       \
+               /         \
+          Left subset   Right subset
+               ↓           ↓
+          Repeat recursively
+               ↓
+          Stopping criterion?
+             /       \
+           No         Yes
+           ↓           ↓
+       Split again    Leaf
+                       ↓
+                  Prediction
+```
+
+---
+
+# 35. Classification Algorithm
+
+A simplified algorithm:
+
+```text
+function build_tree(data):
+
+    if stopping_condition:
+        return leaf
+
+    for every feature:
+        for every possible threshold:
+            calculate split quality
+
+    choose best split
+
+    left_data = samples satisfying split
+    right_data = remaining samples
+
+    left_tree = build_tree(left_data)
+    right_tree = build_tree(right_data)
+
+    return node(left_tree, right_tree)
+```
+
+This is the core recursive idea.
+
+---
+
+# 36. Prediction Process
+
+Suppose we have:
+
+```text
+             Age < 30?
+             /       \
+           Yes        No
+           |
+       Income > 50K?
+        /       \
+      Yes       No
+      |          |
+     Buy       Don't Buy
+```
+
+For:
+
+```text
+Age = 25
+Income = 60K
+```
+
+Prediction:
+
+```text
+Age < 30 → Yes
+        ↓
+Income > 50K → Yes
+        ↓
+Buy
+```
+
+The prediction simply follows the path from root to leaf.
+
+---
+
+# 37. Advantages of Decision Trees
+
+### 1. Easy to understand
+
+Rules are human-readable.
+
+```text
+IF age < 30
+AND income > 50K
+THEN buy
+```
+
+---
+
+### 2. Little preprocessing
+
+Usually no feature scaling is required.
+
+---
+
+### 3. Handles nonlinear relationships
+
+No need to explicitly create polynomial features.
+
+---
+
+### 4. Works for classification and regression
+
+```text
+DecisionTreeClassifier
+DecisionTreeRegressor
+```
+
+---
+
+### 5. Can model feature interactions
+
+For example:
+
+```text
+Age
+   ↓
+Income
+   ↓
+Education
+```
+
+The effect of one feature can depend on another.
+
+---
+
+### 6. Interpretable
+
+Individual decisions can be traced through the tree.
+
+---
+
+# 38. Disadvantages
+
+### 1. Easily overfits
+
+Unrestricted trees can memorize training data.
+
+---
+
+### 2. High variance
+
+Small changes in training data can produce a very different tree.
+
+---
+
+### 3. Greedy algorithm
+
+Most standard tree-building algorithms choose the best split **locally**, rather than searching all possible complete trees.
+
+So the resulting tree isn't necessarily globally optimal.
+
+---
+
+### 4. Large trees become difficult to interpret
+
+A tree with:
+
+```text
+depth = 20
+```
+
+can be extremely complicated.
+
+---
+
+### 5. Regression trees extrapolate poorly
+
+Suppose training data contains:
+
+```text
+X = 1–100
+```
+
+and you ask the tree to predict:
+
+```text
+X = 150
+```
+
+A regression tree generally cannot extrapolate a new increasing trend like linear regression can. It predicts based on an existing leaf/region.
+
+---
+
+# 39. Important Hyperparameters in Scikit-Learn
+
+For classification:
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+```
+
+Example:
+
+```python
+model = DecisionTreeClassifier(
+    criterion="gini",
+    max_depth=5,
+    min_samples_split=10,
+    min_samples_leaf=5,
+    max_leaf_nodes=20,
+    random_state=42
+)
+```
+
+---
+
+# 40. `criterion`
+
+Controls how split quality is measured.
+
+Common options include:
+
+```python
+criterion="gini"
+```
+
+or:
+
+```python
+criterion="entropy"
+```
+
+and, depending on the scikit-learn version, `log_loss` is also available for classification.
+
+---
+
+# 41. `max_depth`
+
+Maximum depth of the tree.
+
+```python
+max_depth=5
+```
+
+Small value:
+
+```text
+Less complex
+↓
+Less overfitting
+↓
+Potential underfitting
+```
+
+Large value:
+
+```text
+More complex
+↓
+Potential overfitting
+```
+
+---
+
+# 42. `min_samples_split`
+
+Minimum number of samples needed to split an internal node.
+
+```python
+min_samples_split=10
+```
+
+If a node has fewer than 10 samples, it won't be split.
+
+Increasing this value generally makes the tree simpler.
+
+---
+
+# 43. `min_samples_leaf`
+
+Minimum samples allowed in a leaf.
+
+```python
+min_samples_leaf=5
+```
+
+This prevents extremely small leaves.
+
+Useful for reducing overfitting.
+
+---
+
+# 44. `max_leaf_nodes`
+
+Limits the maximum number of leaf nodes.
+
+```python
+max_leaf_nodes=20
+```
+
+Useful when you want direct control over tree complexity.
+
+---
+
+# 45. `max_features`
+
+Controls the number of features considered when searching for a split.
+
+This becomes particularly important in tree ensembles such as:
+
+```text
+Random Forest
+Extra Trees
+```
+
+It can also be used in individual Decision Trees.
+
+---
+
+# 46. `ccp_alpha`
+
+Used for **Minimal Cost-Complexity Pruning**.
+
+```python
+ccp_alpha=0.01
+```
+
+Higher value:
+
+```text
+More pruning
+→ smaller tree
+→ potentially less overfitting
+```
+
+---
+
+# 47. Complete Classification Example
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = DecisionTreeClassifier(
+    criterion="gini",
+    max_depth=5,
+    min_samples_split=10,
+    min_samples_leaf=5,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+```
+
+---
+
+# 48. Regression Example
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = DecisionTreeRegressor(
+    criterion="squared_error",
+    max_depth=5,
+    min_samples_leaf=5,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+mse = mean_squared_error(y_test, y_pred)
+
+print("MSE:", mse)
+```
+
+---
+
+# 49. Visualizing a Decision Tree
+
+One of the best things about Decision Trees is that we can visualize them.
+
+```python
+from sklearn.tree import plot_tree
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(15, 10))
+
+plot_tree(
+    model,
+    feature_names=X.columns,
+    filled=True
+)
+
+plt.show()
+```
+
+You can see:
+
+```text
+feature
+threshold
+impurity
+samples
+value
+class
+```
+
+at each node.
+
+---
+
+# 50. Understanding a Tree Node
+
+You may see something like:
+
+```text
+petal length <= 2.45
+gini = 0.667
+samples = 150
+value = [50, 50, 50]
+```
+
+Meaning:
+
+### `petal length <= 2.45`
+
+The decision rule.
+
+### `gini = 0.667`
+
+Impurity of the current node.
+
+### `samples = 150`
+
+Number of training samples reaching that node.
+
+### `value = [50, 50, 50]`
+
+Number of samples belonging to each class.
+
+---
+
+# 51. Feature Importance
+
+Decision Trees can calculate feature importance.
+
+```python
+model.feature_importances_
+```
+
+Example:
+
+```text
+Age       0.25
+Income    0.45
+Education 0.20
+Gender    0.10
+```
+
+This means the tree used `Income` more heavily in its impurity-reducing splits.
+
+However, **feature importance should not automatically be interpreted as causal importance**, and impurity-based importance can be biased toward certain types of features.
+
+---
+
+# 52. Probability Prediction
+
+For classification:
+
+```python
+model.predict_proba(X_test)
+```
+
+Example:
+
+```text
+Class 0     Class 1
+0.20        0.80
+```
+
+The model estimates class probabilities based on the training samples reaching the leaf.
+
+---
+
+# 53. Decision Tree vs KNN
+
+Since you've been studying KNN, this comparison is useful.
+
+| Feature | Decision Tree | KNN |
+|---|---|---|
+| Learning type | Supervised | Supervised |
+| Training | Relatively fast | Very little model fitting |
+| Prediction | Usually fast | Can be expensive |
+| Scaling | Usually unnecessary | Important |
+| Nonlinear patterns | Excellent | Excellent |
+| Interpretability | High | Low |
+| Overfitting | High risk | Depends on K |
+| Handles feature interactions | Yes | Indirectly |
+| Model structure | Tree | Stored training points |
+
+---
+
+# 54. Decision Tree vs Logistic Regression
+
+| | Decision Tree | Logistic Regression |
+|---|---|---|
+| Decision boundary | Nonlinear / piecewise | Linear unless features transformed |
+| Scaling | Usually unnecessary | Often useful |
+| Interpretability | High | High |
+| Overfitting | High risk | Generally lower |
+| Nonlinear relationships | Naturally handles | Needs feature engineering |
+| Probability output | Yes | Yes |
+| Feature interactions | Naturally | Need explicit interaction features |
+
+---
+
+# 55. Decision Tree vs SVM
+
+This is particularly useful because you're currently studying SVM.
+
+| | Decision Tree | SVM |
+|---|---|---|
+| Scaling | Usually unnecessary | Usually important |
+| Nonlinear data | Good | Excellent with kernels |
+| Interpretability | High | Lower |
+| Training complexity | Usually manageable | Can become expensive |
+| Large datasets | Often good | Can be challenging depending on formulation |
+| Outliers | Can be sensitive to data splits | Depends strongly on kernel/parameters |
+| Feature engineering | Often less | Sometimes important |
+
+---
+
+# 56. Why Decision Trees Are the Foundation of Powerful Algorithms
+
+Decision Trees become extremely powerful when combined into ensembles.
+
+Important algorithms you'll study next are:
+
+```text
+Decision Tree
+      ↓
+Random Forest
+      ↓
+Gradient Boosting
+      ↓
+XGBoost
+      ↓
+LightGBM
+      ↓
+CatBoost
+```
+
+The basic Decision Tree is therefore extremely important for understanding modern tabular ML.
+
+---
+
+# 57. Random Forest Connection
+
+Random Forest creates many Decision Trees.
+
+```text
+             Dataset
+          /     |      \
+        Tree   Tree    Tree
+         |      |       |
+        Pred   Pred    Pred
+          \     |      /
+           Majority Vote
+                 ↓
+            Final Class
+```
+
+Instead of relying on one tree, Random Forest combines many trees to reduce variance and improve generalization.
+
+---
+
+# 58. Boosting Connection
+
+Boosting also uses trees, but differently.
+
+Conceptually:
+
+```text
+Tree 1 → mistakes
+           ↓
+Tree 2 focuses more on mistakes
+           ↓
+Tree 3 focuses on remaining mistakes
+           ↓
+Tree 4 ...
+           ↓
+Final prediction
+```
+
+This leads to algorithms such as:
+
+- Gradient Boosting
+- XGBoost
+- LightGBM
+- CatBoost
+
+---
+
+# 59. A Very Important Concept: Greedy Splitting
+
+Decision Tree construction is generally **greedy**.
+
+At each node:
+
+```text
+Find best feature + threshold
+             ↓
+Make split
+             ↓
+Never go back and reconsider the entire tree
+```
+
+It doesn't normally search every possible tree structure because that would be computationally impractical.
+
+This is one reason trees can be sensitive to small changes in data.
+
+---
+
+# 60. Bias-Variance Perspective
+
+Decision Trees are typically capable of producing:
+
+```text
+Low bias
+High variance
+```
+
+An unrestricted tree can fit the training data extremely well:
+
+```text
+Training error → very low
+Test error     → potentially high
+```
+
+Pruning and constraints increase bias somewhat but reduce variance.
+
+This is an important connection to:
+
+```text
+max_depth
+min_samples_leaf
+min_samples_split
+ccp_alpha
+```
+
+---
+
+# 61. Decision Tree Mental Model
+
+You can remember the entire algorithm like this:
+
+```text
+                 DATA
+                   ↓
+          "What is the best question?"
+                   ↓
+           Feature + Threshold
+                   ↓
+              Split data
+              /          \
+             /            \
+        Subset A        Subset B
+           ↓                ↓
+   "Best question?"   "Best question?"
+           ↓                ↓
+        Split              Split
+           ↓                ↓
+         Repeat           Repeat
+              \            /
+               \          /
+                 LEAVES
+                   ↓
+               PREDICTION
+```
+
+---
+
+# 62. What You Should Study in Order
+
+Since you're learning ML systematically, I'd recommend studying Decision Trees in this sequence:
+
+### Level 1 — Fundamentals
+
+1. What is Decision Tree?
+2. Classification vs Regression Trees
+3. Root, node, branch, leaf
+4. Recursive partitioning
+5. How splitting works
+6. Pure vs impure nodes
+
+### Level 2 — Mathematical Foundation
+
+7. Entropy
+8. Information Gain
+9. Gini Impurity
+10. Gain Ratio
+11. Variance reduction
+12. MSE for regression trees
+
+### Level 3 — Tree Construction
+
+13. Finding the best feature
+14. Finding the best threshold
+15. Continuous variables
+16. Categorical variables
+17. Recursive splitting
+18. Stopping criteria
+19. Greedy splitting
+
+### Level 4 — Overfitting
+
+20. Why Decision Trees overfit
+21. Pre-pruning
+22. Post-pruning
+23. Cost-complexity pruning
+24. `ccp_alpha`
+25. Bias-variance tradeoff
+
+### Level 5 — Scikit-learn
+
+26. `DecisionTreeClassifier`
+27. `DecisionTreeRegressor`
+28. `criterion`
+29. `max_depth`
+30. `min_samples_split`
+31. `min_samples_leaf`
+32. `max_leaf_nodes`
+33. `max_features`
+34. `min_impurity_decrease`
+35. `ccp_alpha`
+36. `random_state`
+
+### Level 6 — Practical ML
+
+37. Train/test split
+38. Cross-validation
+39. Hyperparameter tuning
+40. GridSearchCV
+41. RandomizedSearchCV
+42. Evaluation metrics
+43. Feature importance
+44. Tree visualization
+45. Handling missing/categorical data
+
+### Level 7 — Advanced
+
+46. CART
+47. ID3
+48. C4.5
+49. CHAID
+50. Random Forest
+51. Extra Trees
+52. Gradient Boosting
+53. XGBoost
+54. LightGBM
+55. CatBoost
+
+---
+
+## ⭐ The most important concepts to master
+
+If you're preparing for ML interviews/exams, don't just memorize the algorithm. Make sure you can **derive and explain**:
+
+$$
+\boxed{Entropy}
+$$
+
+$$
+\boxed{Information\ Gain}
+$$
+
+$$
+\boxed{Gini\ Impurity}
+$$
+
+$$
+\boxed{Best\ Split}
+$$
+
+$$
+\boxed{Recursive\ Partitioning}
+$$
+
+$$
+\boxed{Overfitting}
+$$
+
+$$
+\boxed{Pruning}
+$$
+
+$$
+\boxed{Bias-Variance\ Tradeoff}
+$$
+
+and understand why:
+
+> **A Decision Tree tries to recursively divide the feature space into increasingly pure regions, while controlling tree complexity to generalize well to unseen data.**
+
+A particularly good next step is to work through **one complete Decision Tree example by hand**, calculating **Entropy → Information Gain → selecting the root → splitting → calculating the next split**, because that makes the mathematics much easier to understand.
