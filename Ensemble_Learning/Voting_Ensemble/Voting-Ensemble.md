@@ -526,3 +526,504 @@ probability=True
 For soft voting, the estimator needs to provide probability estimates.
 
 ---
+
+# 17. Hard Voting Implementation
+
+```python
+from sklearn.ensemble import VotingClassifier
+
+voting_clf = VotingClassifier(
+    estimators=[
+        ("lr", lr),
+        ("dt", dt),
+        ("svm", svm)
+    ],
+    voting="hard"
+)
+```
+
+Train:
+
+```python
+voting_clf.fit(X_train, y_train)
+```
+
+Predict:
+
+```python
+y_pred = voting_clf.predict(X_test)
+```
+
+Evaluate:
+
+```python
+from sklearn.metrics import accuracy_score
+
+accuracy = accuracy_score(y_test, y_pred)
+
+print(accuracy)
+```
+
+---
+
+# 18. Soft Voting Implementation
+
+Change:
+
+```python
+voting="hard"
+```
+
+to:
+
+```python
+voting="soft"
+```
+
+Complete:
+
+```python
+voting_clf = VotingClassifier(
+    estimators=[
+        ("lr", lr),
+        ("dt", dt),
+        ("svm", svm)
+    ],
+    voting="soft"
+)
+
+voting_clf.fit(X_train, y_train)
+
+y_pred = voting_clf.predict(X_test)
+
+print(accuracy_score(y_test, y_pred))
+```
+
+---
+
+# 19. Weighted Voting in Scikit-Learn
+
+We can specify:
+
+```python
+weights=[1, 1, 2]
+```
+
+For example:
+
+```python
+voting_clf = VotingClassifier(
+    estimators=[
+        ("lr", lr),
+        ("dt", dt),
+        ("svm", svm)
+    ],
+    voting="soft",
+    weights=[1, 1, 2]
+)
+```
+
+Here:
+
+```text
+Logistic Regression → 1
+Decision Tree       → 1
+SVM                 → 2
+```
+
+SVM therefore gets twice the influence.
+
+---
+
+# 20. Important `VotingClassifier` Parameters
+
+### `estimators`
+
+Defines the models.
+
+```python
+estimators=[
+    ("lr", lr),
+    ("dt", dt),
+    ("svm", svm)
+]
+```
+
+Each element is:
+
+```text
+(name, estimator)
+```
+
+---
+
+### `voting`
+
+Two options:
+
+```python
+voting="hard"
+```
+
+or:
+
+```python
+voting="soft"
+```
+
+Default:
+
+```python
+"hard"
+```
+
+---
+
+### `weights`
+
+Controls the importance of each model.
+
+```python
+weights=[1, 2, 3]
+```
+
+The order corresponds to the estimator order.
+
+---
+
+### `n_jobs`
+
+Controls parallel processing where supported.
+
+```python
+VotingClassifier(
+    estimators=[...],
+    voting="soft",
+    n_jobs=-1
+)
+```
+
+`-1` generally means use all available CPU cores.
+
+---
+
+### `flatten_transform`
+
+Relevant when using soft voting and `transform()`.
+
+It controls the shape of the transformed probability output.
+
+Usually you won't need to change it for normal `fit()` / `predict()` usage.
+
+---
+
+# 21. Comparing Individual Models vs Voting
+
+A very important experiment is:
+
+```python
+models = {
+    "Logistic Regression": lr,
+    "Decision Tree": dt,
+    "SVM": svm,
+    "Voting": voting_clf
+}
+```
+
+Then:
+
+```python
+for name, model in models.items():
+
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+
+    score = accuracy_score(y_test, y_pred)
+
+    print(name, score)
+```
+
+You might get something like:
+
+```text
+Logistic Regression    0.967
+Decision Tree          0.933
+SVM                    1.000
+Voting                 0.967
+```
+
+The voting ensemble **does not have to outperform every individual model**.
+
+This is an important point.
+
+---
+
+# 22. Very Important: Diversity
+
+One of the most important concepts in ensemble learning is:
+
+> **Good ensembles need diverse models.**
+
+Suppose we have:
+
+```text
+Model 1 → Logistic Regression
+Model 2 → Logistic Regression
+Model 3 → Logistic Regression
+```
+
+They are likely to make very similar errors.
+
+Combining them doesn't provide much benefit.
+
+But:
+
+```text
+Logistic Regression
+Decision Tree
+KNN
+SVM
+Naive Bayes
+```
+
+learn patterns differently.
+
+Their errors may be less correlated.
+
+That makes voting more useful.
+
+---
+
+# 23. Accuracy Alone Isn't Enough
+
+Suppose:
+
+```text
+Model A → 95% accuracy
+Model B → 94% accuracy
+Model C → 93% accuracy
+```
+
+You might think these are excellent ensemble candidates.
+
+But if all three models make **exactly the same mistakes**, the ensemble gains little.
+
+Instead, you might prefer:
+
+```text
+Model A → 95%
+Model B → 92%
+Model C → 90%
+```
+
+if their errors are substantially different.
+
+Therefore:
+
+$$
+\boxed{\text{Model Quality + Model Diversity}}
+$$
+
+are both important.
+
+---
+
+# 24. Voting Ensemble for Regression
+
+Voting isn't only for classification.
+
+Scikit-learn provides:
+
+```python
+VotingRegressor
+```
+
+Instead of voting on classes, regression models' predictions are **averaged**.
+
+Suppose:
+
+```text
+Linear Regression → 100
+Decision Tree     → 110
+Random Forest     → 105
+```
+
+Then:
+
+$$
+\hat y =
+\frac{100+110+105}{3}
+$$
+
+$$
+=105
+$$
+
+Final prediction:
+
+$$
+\boxed{105}
+$$
+
+---
+
+# 25. Voting Regressor Example
+
+```python
+from sklearn.ensemble import VotingRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+
+lr = LinearRegression()
+
+dt = DecisionTreeRegressor(
+    max_depth=5,
+    random_state=42
+)
+
+rf = RandomForestRegressor(
+    n_estimators=100,
+    random_state=42
+)
+```
+
+Create ensemble:
+
+```python
+voting_reg = VotingRegressor(
+    estimators=[
+        ("lr", lr),
+        ("dt", dt),
+        ("rf", rf)
+    ]
+)
+```
+
+Train:
+
+```python
+voting_reg.fit(X_train, y_train)
+```
+
+Predict:
+
+```python
+y_pred = voting_reg.predict(X_test)
+```
+
+---
+
+# 26. Weighted Voting Regressor
+
+You can also assign weights.
+
+```python
+voting_reg = VotingRegressor(
+    estimators=[
+        ("lr", lr),
+        ("dt", dt),
+        ("rf", rf)
+    ],
+    weights=[1, 1, 2]
+)
+```
+
+Random Forest gets twice the influence.
+
+Conceptually:
+
+$$
+\hat y =
+\frac{
+1y_{LR}+1y_{DT}+2y_{RF}
+}{
+1+1+2
+}
+$$
+
+---
+
+# 27. Voting vs Bagging
+
+These are different ensemble techniques.
+
+### Voting
+
+Train **different models**:
+
+```text
+LR
+DT
+SVM
+KNN
+```
+
+and combine their predictions.
+
+### Bagging
+
+Train **multiple versions of the same type of model** on different bootstrap samples.
+
+Example:
+
+```text
+Dataset
+   ↓
+Bootstrap Sample 1 → Decision Tree
+Bootstrap Sample 2 → Decision Tree
+Bootstrap Sample 3 → Decision Tree
+Bootstrap Sample 4 → Decision Tree
+          ↓
+       Combine
+```
+
+Random Forest is a famous bagging-based algorithm.
+
+---
+
+# 28. Voting vs Random Forest
+
+### Voting
+
+```text
+LR
+DT
+SVM
+KNN
+ ↓
+Voting
+```
+
+Different algorithms.
+
+### Random Forest
+
+```text
+Tree 1
+Tree 2
+Tree 3
+Tree 4
+Tree 5
+...
+ ↓
+Majority Voting
+```
+
+Primarily many decision trees.
+
+So:
+
+$$
+\boxed{\text{Voting = heterogeneous ensemble}}
+$$
+
+while Random Forest is primarily:
+
+$$
+\boxed{\text{homogeneous tree ensemble}}
+$$
+
+---
+ 
