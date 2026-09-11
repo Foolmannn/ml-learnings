@@ -1027,3 +1027,620 @@ $$
 
 ---
  
+# 29. Voting vs Boosting
+
+### Voting
+
+Models are generally trained **independently**.
+
+```text
+Model 1 ──┐
+Model 2 ──┼──> Voting
+Model 3 ──┘
+```
+
+### Boosting
+
+Models are trained **sequentially**, with later models focusing on errors made by previous models.
+
+```text
+Model 1
+   ↓
+Errors
+   ↓
+Model 2
+   ↓
+Errors
+   ↓
+Model 3
+   ↓
+Final Model
+```
+
+Examples:
+
+- AdaBoost
+- Gradient Boosting
+- XGBoost
+- LightGBM
+- CatBoost
+
+---
+
+# 30. Voting vs Stacking
+
+This is another very important distinction.
+
+### Voting
+
+Predictions are combined using a predefined rule:
+
+```text
+Predictions
+    ↓
+Majority / Average
+    ↓
+Final prediction
+```
+
+### Stacking
+
+Predictions from base models become **features for another model**.
+
+```text
+             Input
+               │
+       ┌───────┼────────┐
+       ↓       ↓        ↓
+      LR       DT       SVM
+       ↓       ↓        ↓
+      P1       P2       P3
+       └───────┼────────┘
+               ↓
+          Meta Model
+               ↓
+        Final Prediction
+```
+
+The meta-model learns **how to combine the base models**.
+
+---
+
+# 31. Voting Ensemble Example with Real Intuition
+
+Suppose you're predicting whether a student will pass.
+
+Features:
+
+```text
+study_hours
+attendance
+assignment_score
+previous_marks
+```
+
+Models:
+
+### Logistic Regression
+
+Predicts:
+
+```text
+Pass
+```
+
+### Decision Tree
+
+Predicts:
+
+```text
+Fail
+```
+
+### KNN
+
+Predicts:
+
+```text
+Pass
+```
+
+### SVM
+
+Predicts:
+
+```text
+Pass
+```
+
+### Naive Bayes
+
+Predicts:
+
+```text
+Fail
+```
+
+Hard voting:
+
+```text
+Pass → 3
+Fail → 2
+```
+
+Final:
+
+```text
+PASS
+```
+
+---
+
+# 32. Soft Voting Example
+
+Now suppose their probability predictions are:
+
+| Model | Pass | Fail |
+|---|---:|---:|
+| LR | 0.80 | 0.20 |
+| DT | 0.40 | 0.60 |
+| KNN | 0.70 | 0.30 |
+| SVM | 0.90 | 0.10 |
+| NB | 0.45 | 0.55 |
+
+Average:
+
+$$
+P(Pass)=
+\frac{0.80+0.40+0.70+0.90+0.45}{5}
+$$
+
+$$
+=0.65
+$$
+
+Therefore:
+
+$$
+P(Fail)=0.35
+$$
+
+Final:
+
+$$
+\boxed{Pass}
+$$
+
+---
+
+# 33. When Should You Use Voting?
+
+Voting is particularly useful when:
+
+### 1. You have several good models
+
+For example:
+
+```text
+LR → good
+SVM → good
+Random Forest → good
+KNN → good
+```
+
+Combining them may improve robustness.
+
+### 2. Models make different errors
+
+This is probably the most important reason.
+
+### 3. You want a simple ensemble
+
+Voting is relatively easy to implement.
+
+### 4. You don't want to train a meta-model
+
+Unlike stacking, voting doesn't require learning a second-level model.
+
+---
+
+# 34. When Should You NOT Use Voting?
+
+Voting isn't automatically better.
+
+Avoid blindly adding models.
+
+For example:
+
+```text
+Weak Model 1
+Weak Model 2
+Weak Model 3
+Weak Model 4
+Weak Model 5
+```
+
+Voting them together doesn't magically create a strong model.
+
+Also, if all models are highly correlated:
+
+```text
+Model A ─┐
+Model B ─┼─ same errors
+Model C ─┘
+```
+
+the benefit can be small.
+
+---
+
+# 35. Probability Calibration and Soft Voting
+
+This is an advanced but important concept.
+
+Soft voting assumes that probability outputs are meaningful enough to average.
+
+For example:
+
+```text
+Model A → 0.90
+Model B → 0.60
+Model C → 0.80
+```
+
+But a model's:
+
+```text
+0.90
+```
+
+doesn't necessarily mean that the event happens 90% of the time.
+
+Some models produce poorly calibrated probabilities.
+
+Therefore, soft voting can benefit from **probability calibration**.
+
+Scikit-learn provides:
+
+```python
+CalibratedClassifierCV
+```
+
+This becomes especially important when:
+
+- models produce very different probability scales
+- probability estimates are important
+- you are using weighted soft voting
+
+---
+
+# 36. A Good Practical Voting Ensemble
+
+For a classification problem, you could start with:
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import VotingClassifier
+```
+
+Then:
+
+```python
+lr = LogisticRegression(max_iter=1000)
+
+dt = DecisionTreeClassifier(
+    max_depth=5,
+    random_state=42
+)
+
+rf = RandomForestClassifier(
+    n_estimators=200,
+    random_state=42
+)
+
+svm = SVC(
+    probability=True,
+    random_state=42
+)
+
+knn = KNeighborsClassifier(
+    n_neighbors=5
+)
+```
+
+Create ensemble:
+
+```python
+voting = VotingClassifier(
+    estimators=[
+        ("lr", lr),
+        ("dt", dt),
+        ("rf", rf),
+        ("svm", svm),
+        ("knn", knn)
+    ],
+    voting="soft",
+    weights=[2, 1, 2, 2, 1],
+    n_jobs=-1
+)
+```
+
+Then:
+
+```python
+voting.fit(X_train, y_train)
+
+y_pred = voting.predict(X_test)
+```
+
+Evaluate:
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+---
+
+# 37. Important Practical Problem: Feature Scaling
+
+Different models have different scaling requirements.
+
+For example:
+
+### Logistic Regression
+
+Usually benefits from scaling.
+
+### SVM
+
+Usually **strongly benefits from scaling**.
+
+### KNN
+
+Usually **strongly benefits from scaling**.
+
+### Decision Tree
+
+Doesn't generally require scaling.
+
+So if you combine:
+
+```text
+LR + SVM + KNN + DT
+```
+
+you should think carefully about preprocessing.
+
+A good approach is to use separate pipelines:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+lr_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("model", LogisticRegression(max_iter=1000))
+])
+```
+
+Similarly for SVM and KNN.
+
+This is often better than blindly scaling the entire dataset for every model.
+
+---
+
+# 38. Voting with Pipelines
+
+Example:
+
+```python
+lr_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("model", LogisticRegression(max_iter=1000))
+])
+
+svm_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("model", SVC(probability=True))
+])
+
+knn_pipe = Pipeline([
+    ("scaler", StandardScaler()),
+    ("model", KNeighborsClassifier())
+])
+```
+
+Then:
+
+```python
+voting = VotingClassifier(
+    estimators=[
+        ("lr", lr_pipe),
+        ("svm", svm_pipe),
+        ("knn", knn_pipe),
+        ("dt", dt)
+    ],
+    voting="soft"
+)
+```
+
+This is a much more realistic production-style implementation.
+
+---
+
+# 39. Advantages of Voting Ensemble
+
+### 1. Simple
+
+Easy to understand and implement.
+
+### 2. Combines different algorithms
+
+You can combine:
+
+```text
+LR + DT + SVM + KNN
+```
+
+### 3. Can improve generalization
+
+If models make complementary errors.
+
+### 4. Reduces dependence on one model
+
+One model's bad prediction may be overridden by others.
+
+### 5. Flexible
+
+Supports:
+
+- hard voting
+- soft voting
+- weighted voting
+
+---
+
+# 40. Disadvantages
+
+### 1. Computationally expensive
+
+You have to train multiple models.
+
+### 2. More memory
+
+Multiple models need to be stored.
+
+### 3. Doesn't guarantee improvement
+
+The ensemble can perform worse than the best individual model.
+
+### 4. Soft voting depends on probability quality
+
+Bad probability estimates can hurt performance.
+
+### 5. More complexity
+
+Deployment and maintenance become more complicated.
+
+---
+
+# 41. The Core Idea to Remember
+
+Think about Voting Ensemble like a group decision:
+
+```text
+              ┌── Logistic Regression ──┐
+              │                         │
+Input ────────┼── Decision Tree ────────┤
+              │                         ├──> Voting → Final
+              ├── SVM ──────────────────┤
+              │                         │
+              └── KNN ──────────────────┘
+```
+
+### Hard voting:
+
+> **Which class did most models choose?**
+
+### Soft voting:
+
+> **Which class has the highest average probability?**
+
+### Weighted voting:
+
+> **Which class has the highest weighted vote/probability?**
+
+---
+
+# 42. Voting Ensemble vs Other Ensemble Methods
+
+| Method | Base Models | Training | Combination |
+|---|---|---|---|
+| **Voting** | Different models | Parallel/independent | Vote/average |
+| **Bagging** | Usually same model | Parallel | Average/vote |
+| **Random Forest** | Decision Trees | Parallel | Majority vote |
+| **Boosting** | Usually weak learners | Sequential | Weighted combination |
+| **Stacking** | Different models | Base + meta-model | Meta-model |
+| **Blending** | Different models | Base + holdout/meta-model | Meta-model |
+
+A useful mental map is:
+
+```text
+                 Ensemble Learning
+                       │
+        ┌──────────────┼───────────────┐
+        ↓              ↓               ↓
+     Bagging         Boosting       Combining
+        │              │               │
+ Random Forest     AdaBoost          Voting
+                  Gradient Boosting   Stacking
+                  XGBoost             Blending
+```
+
+---
+
+# 43. What You Should Study Next
+
+Since you're going through **Ensemble Learning**, I'd study it in this order:
+
+```text
+1. Ensemble Learning
+        ↓
+2. Voting Ensemble          ← You are here
+        ↓
+3. Bagging
+        ↓
+4. Random Forest
+        ↓
+5. Boosting
+        ↓
+6. AdaBoost
+        ↓
+7. Gradient Boosting
+        ↓
+8. XGBoost
+        ↓
+9. LightGBM
+        ↓
+10. CatBoost
+        ↓
+11. Stacking
+        ↓
+12. Blending
+        ↓
+13. Bias-Variance + Ensemble connection
+```
+
+The **most important conceptual distinction** to have clear before moving on is:
+
+$$
+\boxed{
+\text{Voting = combine predictions from independently trained models}
+}
+$$
+
+$$
+\boxed{
+\text{Bagging = train many models on different bootstrap samples}
+}
+$$
+
+$$
+\boxed{
+\text{Boosting = sequentially improve weak learners}
+}
+$$
+
+$$
+\boxed{
+\text{Stacking = learn how to combine models using a meta-model}
+}
+$$
+
+These four ideas form the foundation for understanding almost all practical ensemble methods.
