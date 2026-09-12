@@ -1,5 +1,4 @@
-
-# Bagging in Machine Learning — In Detail
+># Bagging in Machine Learning — In Detail
 
 **Bagging** stands for **Bootstrap Aggregating**. It is an **ensemble learning technique** where multiple models are trained independently on different randomly generated samples of the training data, and their predictions are combined.
 
