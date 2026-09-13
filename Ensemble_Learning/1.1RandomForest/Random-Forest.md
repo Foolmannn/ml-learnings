@@ -529,3 +529,493 @@ And Random Forest uses **random feature selection** specifically to reduce corre
 | Usually weaker generalization | Usually better generalization |
 
 ---
+
+# 14. Random Forest vs Bagging
+
+This distinction is very important.
+
+### Bagging
+
+```text
+Bootstrap samples
+       ↓
+Decision Tree
+Decision Tree
+Decision Tree
+Decision Tree
+       ↓
+Aggregation
+```
+
+All features may be considered when determining splits.
+
+### Random Forest
+
+```text
+Bootstrap samples
+       ↓
+Random feature selection
+       ↓
+Decision Tree
+Decision Tree
+Decision Tree
+Decision Tree
+       ↓
+Aggregation
+```
+
+So:
+
+> **Random Forest = Bagging of Decision Trees + Random feature selection**
+
+That's a useful exam/interview definition.
+
+---
+
+# 15. Random Forest vs Extra Trees
+
+Another algorithm you'll eventually encounter is **Extra Trees (Extremely Randomized Trees)**.
+
+The difference is roughly:
+
+### Random Forest
+
+Random:
+
+- samples
+- features
+
+But split thresholds are optimized.
+
+### Extra Trees
+
+Random:
+
+- samples/features depending on configuration
+- split thresholds
+
+Instead of searching for the best threshold among all possible thresholds, Extra Trees generates random thresholds and chooses the best among those.
+
+This introduces even more randomness.
+
+---
+
+# 16. Important Random Forest hyperparameters
+
+This is especially important because you've recently been working with `GridSearchCV`.
+
+For:
+
+```python
+RandomForestClassifier()
+```
+
+some of the most important parameters are:
+
+```python
+n_estimators
+criterion
+max_depth
+min_samples_split
+min_samples_leaf
+max_features
+bootstrap
+max_samples
+class_weight
+max_leaf_nodes
+```
+
+Let's understand them.
+
+---
+
+# 17. `n_estimators`
+
+Number of trees in the forest.
+
+```python
+RandomForestClassifier(
+    n_estimators=100
+)
+```
+
+Example:
+
+```text
+n_estimators = 10
+→ 10 trees
+
+n_estimators = 500
+→ 500 trees
+```
+
+Increasing it generally:
+
+- improves stability
+- reduces variance
+- increases computation
+- increases memory usage
+
+Usually, increasing trees doesn't cause the same kind of overfitting problem as increasing tree depth.
+
+For example:
+
+```python
+n_estimators=10
+```
+
+may be unstable.
+
+```python
+n_estimators=500
+```
+
+is generally much more stable.
+
+But after some point, performance improvement becomes very small.
+
+---
+
+# 18. `max_depth`
+
+Maximum depth of each tree.
+
+```python
+RandomForestClassifier(
+    max_depth=10
+)
+```
+
+Example:
+
+```text
+max_depth = 3
+```
+
+produces shallow trees.
+
+```text
+max_depth = None
+```
+
+allows trees to grow until other stopping conditions are reached.
+
+### Small max_depth
+
+- simpler trees
+- less variance
+- potentially more bias
+- may underfit
+
+### Large max_depth
+
+- complex trees
+- lower bias
+- higher variance
+- potentially more overfitting
+
+Random Forest can tolerate fairly deep trees because averaging reduces variance.
+
+---
+
+# 19. `max_features`
+
+This is one of the **most important Random Forest parameters**.
+
+It determines how many features are randomly considered at each split.
+
+For example:
+
+```python
+max_features=0.5
+```
+
+means approximately 50% of the features are considered at each split.
+
+Suppose:
+
+```text
+20 features
+```
+
+and:
+
+```python
+max_features=0.5
+```
+
+then approximately:
+
+```text
+10 features
+```
+
+are randomly considered at a split.
+
+---
+
+### Common values
+
+You can use:
+
+```python
+max_features="sqrt"
+```
+
+or
+
+```python
+max_features="log2"
+```
+
+or:
+
+```python
+max_features=0.5
+```
+
+or an integer:
+
+```python
+max_features=5
+```
+
+or:
+
+```python
+max_features=None
+```
+
+which means all features.
+
+---
+
+# 20. Why `max_features` matters
+
+Suppose:
+
+```text
+max_features = all features
+```
+
+Trees become more similar.
+
+Therefore:
+
+```text
+Correlation ↑
+Diversity ↓
+```
+
+If:
+
+```text
+max_features = small
+```
+
+trees become more diverse.
+
+Therefore:
+
+```text
+Correlation ↓
+Diversity ↑
+```
+
+But if you make it **too small**, individual trees may become weak.
+
+So there is a trade-off:
+
+```text
+More features
+    ↓
+Stronger individual trees
+    ↓
+More correlation
+
+
+Fewer features
+    ↓
+More diversity
+    ↓
+Potentially weaker individual trees
+```
+
+---
+
+# 21. `bootstrap`
+
+Determines whether bootstrap samples are used.
+
+```python
+bootstrap=True
+```
+
+means sampling with replacement.
+
+This is the traditional Random Forest approach.
+
+```python
+bootstrap=False
+```
+
+means bootstrap sampling isn't used.
+
+This changes the way the training data for each tree is generated.
+
+---
+
+# 22. `max_samples`
+
+This controls how many samples are drawn for each tree when:
+
+```python
+bootstrap=True
+```
+
+For example:
+
+```python
+max_samples=0.7
+```
+
+means each tree receives approximately:
+
+```text
+70% of training samples
+```
+
+with replacement.
+
+Or:
+
+```python
+max_samples=500
+```
+
+means 500 samples.
+
+This is similar to what you were tuning with Bagging.
+
+---
+
+# 23. `min_samples_split`
+
+Minimum number of samples required to split an internal node.
+
+Example:
+
+```python
+min_samples_split=10
+```
+
+A node must contain at least 10 samples before it can be split.
+
+Small value:
+
+```text
+2
+```
+
+allows more splitting.
+
+Larger value:
+
+```text
+10, 20, 50
+```
+
+produces simpler trees.
+
+---
+
+# 24. `min_samples_leaf`
+
+Minimum number of samples allowed in a leaf.
+
+Example:
+
+```python
+min_samples_leaf=5
+```
+
+means every leaf must have at least 5 samples.
+
+This can help prevent trees from creating extremely specific rules.
+
+For example, instead of:
+
+```text
+Leaf 1 → 1 sample
+```
+
+you could require:
+
+```text
+Leaf 1 → at least 5 samples
+```
+
+This generally makes the model smoother and can reduce overfitting.
+
+---
+
+# 25. `criterion`
+
+The criterion determines how the tree evaluates splits.
+
+For classification, common options include:
+
+```python
+criterion="gini"
+```
+
+and:
+
+```python
+criterion="entropy"
+```
+
+or, in current scikit-learn versions, `"log_loss"`.
+
+### Gini impurity
+
+$$
+Gini = 1-\sum_{k=1}^{K}p_k^2
+$$
+
+where $p_k$ is the proportion of class $k$.
+
+### Entropy
+
+$$
+H=-\sum_{k=1}^{K}p_k\log_2(p_k)
+$$
+
+The tree tries to find splits that reduce impurity.
+
+For regression, criteria include measures based on squared error and related objectives.
+
+---
+
+# 26. `class_weight`
+
+Useful for imbalanced classification.
+
+Suppose:
+
+```text
+Class 0 → 950 samples
+Class 1 → 50 samples
+```
+
+A model might become biased toward Class 0.
+
+You can use:
+
+```python
+class_weight="balanced"
+```
+
+which gives more importance to the minority class.
+
+---
