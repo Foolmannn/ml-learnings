@@ -1019,3 +1019,469 @@ class_weight="balanced"
 which gives more importance to the minority class.
 
 ---
+
+# 27. Example with Scikit-Learn
+
+Classification:
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(
+    n_estimators=200,
+    max_depth=None,
+    max_features="sqrt",
+    min_samples_split=2,
+    min_samples_leaf=1,
+    bootstrap=True,
+    random_state=42,
+    n_jobs=-1
+)
+
+rf.fit(X_train, y_train)
+
+y_pred = rf.predict(X_test)
+```
+
+---
+
+# 28. Evaluate the model
+
+```python
+from sklearn.metrics import accuracy_score
+
+accuracy = accuracy_score(y_test, y_pred)
+
+print("Accuracy:", accuracy)
+```
+
+You can also use:
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+---
+
+# 29. Random Forest Regression
+
+For regression:
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+rf = RandomForestRegressor(
+    n_estimators=200,
+    max_depth=None,
+    max_features=1.0,
+    random_state=42,
+    n_jobs=-1
+)
+
+rf.fit(X_train, y_train)
+
+y_pred = rf.predict(X_test)
+```
+
+Then:
+
+```python
+from sklearn.metrics import mean_squared_error, r2_score
+
+print("MSE:", mean_squared_error(y_test, y_pred))
+print("R2:", r2_score(y_test, y_pred))
+```
+
+---
+
+# 30. What is `random_state`?
+
+Random Forest contains randomness:
+
+- bootstrap sampling
+- feature selection
+
+Therefore, different runs can produce slightly different results.
+
+```python
+random_state=42
+```
+
+makes the random process reproducible.
+
+For example:
+
+```python
+rf1 = RandomForestClassifier(random_state=42)
+rf2 = RandomForestClassifier(random_state=42)
+```
+
+Both should produce the same results when everything else is identical.
+
+The number `42` has no special mathematical meaning.
+
+---
+
+# 31. What is `n_jobs`?
+
+Controls how many CPU cores are used.
+
+```python
+n_jobs=-1
+```
+
+means:
+
+> Use all available CPU cores.
+
+This is particularly useful because Random Forest trees can be trained independently.
+
+For example:
+
+```text
+Tree 1 ── CPU 1
+Tree 2 ── CPU 2
+Tree 3 ── CPU 3
+Tree 4 ── CPU 4
+```
+
+This makes Random Forest highly parallelizable.
+
+---
+
+# 32. Out-of-Bag (OOB) Evaluation
+
+This is another important Random Forest concept.
+
+Remember bootstrap sampling.
+
+Suppose we have:
+
+```text
+1000 training samples
+```
+
+A bootstrap sample of 1000 observations is created **with replacement**.
+
+Because some observations are selected multiple times, some observations aren't selected at all.
+
+These are called:
+
+> **Out-of-Bag samples**
+
+On average, approximately:
+
+$$
+36.8\%
+$$
+
+of the original observations are not selected for a particular bootstrap sample.
+
+Why?
+
+Probability that one observation is not selected:
+
+$$
+\left(1-\frac{1}{n}\right)^n
+$$
+
+As $n$ becomes large:
+
+$$
+\lim_{n\to\infty}
+\left(1-\frac{1}{n}\right)^n
+=
+e^{-1}
+\approx0.368
+$$
+
+So roughly 36.8% of observations are OOB for each tree.
+
+---
+
+# 33. OOB score
+
+Those OOB observations can be used to evaluate the tree.
+
+In scikit-learn:
+
+```python
+rf = RandomForestClassifier(
+    n_estimators=200,
+    bootstrap=True,
+    oob_score=True,
+    random_state=42
+)
+
+rf.fit(X_train, y_train)
+
+print(rf.oob_score_)
+```
+
+This gives an OOB estimate of generalization performance.
+
+Conceptually:
+
+```text
+Bootstrap data
+      ↓
+Train tree
+      ↓
+OOB data
+      ↓
+Evaluate tree
+```
+
+Then combine OOB predictions across trees.
+
+---
+
+# 34. OOB vs Cross-Validation
+
+You recently studied cross-validation, so this distinction is useful.
+
+### Cross-validation
+
+```text
+Dataset
+   ↓
+Fold 1
+Fold 2
+Fold 3
+Fold 4
+Fold 5
+```
+
+Models are trained repeatedly using different train/validation splits.
+
+### OOB
+
+Random Forest naturally creates unused samples through bootstrap sampling.
+
+Those unused samples can be used for evaluation.
+
+Therefore:
+
+> OOB evaluation can provide a convenient validation estimate without explicitly performing K-fold cross-validation.
+
+However, cross-validation remains very useful for **hyperparameter tuning**.
+
+---
+
+# 35. Feature Importance
+
+Random Forest can tell us which features are important.
+
+```python
+rf.feature_importances_
+```
+
+Example:
+
+```python
+import pandas as pd
+
+importance = pd.Series(
+    rf.feature_importances_,
+    index=X_train.columns
+)
+
+print(importance.sort_values(ascending=False))
+```
+
+Output might look like:
+
+```text
+income          0.32
+credit_score    0.25
+debt            0.18
+age             0.12
+education       0.08
+location        0.05
+```
+
+So:
+
+```text
+Income
+```
+
+is the most important feature according to this importance measure.
+
+---
+
+# 36. Important warning about feature importance
+
+`feature_importances_` in tree models is typically based on **impurity decrease**.
+
+It can be biased toward:
+
+- continuous variables
+- high-cardinality categorical variables
+
+Therefore, for serious analysis, **permutation importance** or other methods such as SHAP can be more informative.
+
+Permutation importance asks:
+
+> "How much does model performance decrease when I randomly shuffle this feature?"
+
+Example:
+
+```python
+from sklearn.inspection import permutation_importance
+
+result = permutation_importance(
+    rf,
+    X_test,
+    y_test,
+    random_state=42
+)
+```
+
+---
+
+# 37. Does Random Forest require feature scaling?
+
+Generally:
+
+> **No.**
+
+Random Forest uses decision-tree splits such as:
+
+```text
+income <= 50000
+```
+
+rather than distance or gradient calculations.
+
+Therefore:
+
+```text
+StandardScaler
+MinMaxScaler
+RobustScaler
+```
+
+are generally unnecessary for Random Forest.
+
+For example:
+
+```python
+Random Forest
+    ↓
+Age = 20–80
+Income = 20,000–2,000,000
+    ↓
+No scaling required
+```
+
+This is different from algorithms such as:
+
+- KNN
+- SVM
+- Logistic Regression with regularization
+- Neural Networks
+
+where scaling is often important.
+
+---
+
+# 38. Does Random Forest handle nonlinear relationships?
+
+Yes.
+
+This is one of its major strengths.
+
+For example:
+
+```text
+Age
+ ↓
+    ┌── < 25 → Low risk
+    │
+    └── ≥ 25
+          ↓
+       Income
+          ↓
+       ...
+```
+
+Trees naturally create nonlinear decision boundaries.
+
+Therefore Random Forest can learn complex relationships without manually creating polynomial features.
+
+---
+
+# 39. Does Random Forest capture feature interactions?
+
+Yes.
+
+For example:
+
+```text
+Income
++
+Age
++
+Credit Score
+```
+
+may interact in determining loan default.
+
+A tree can naturally create rules such as:
+
+```text
+IF income < X
+AND credit_score < Y
+AND age < Z
+THEN default
+```
+
+Random Forest combines many such rules.
+
+---
+
+# 40. Advantages of Random Forest
+
+### 1. Excellent general-purpose algorithm
+
+Works well on many tabular datasets.
+
+### 2. Handles nonlinear relationships
+
+No need to assume linearity.
+
+### 3. Reduces overfitting compared with a single tree
+
+Bagging + feature randomness reduces variance.
+
+### 4. Little preprocessing
+
+Usually no feature scaling required.
+
+### 5. Handles feature interactions
+
+Naturally captures complex interactions.
+
+### 6. Works for classification and regression
+
+```python
+RandomForestClassifier
+RandomForestRegressor
+```
+
+### 7. Robust
+
+Often performs well even when the dataset isn't perfectly clean.
+
+### 8. Parallelizable
+
+Trees can be trained independently.
+
+### 9. Provides feature importance
+
+Useful for understanding which features contribute to predictions.
+
+---
