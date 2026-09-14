@@ -1003,3 +1003,626 @@ Feature importance can therefore be used as part of feature selection.
 But you should be careful not to select features using the entire dataset before cross-validation, because that can cause **data leakage**.
 
 ---
+
+# 24. Feature Importance and Data Leakage
+
+Suppose you do:
+
+```python
+importance = model.fit(X, y)
+```
+
+using the entire dataset.
+
+Then choose the top features.
+
+Then perform cross-validation.
+
+This can leak information from validation folds into feature selection.
+
+A better approach is to perform feature selection **inside each training fold**, commonly using a pipeline.
+
+Conceptually:
+
+```text
+Fold 1
+Training data
+   ↓
+Feature selection
+   ↓
+Model
+   ↓
+Validation
+
+Fold 2
+Training data
+   ↓
+Feature selection
+   ↓
+Model
+   ↓
+Validation
+```
+
+This gives a more honest estimate.
+
+---
+
+# 25. Feature Importance and Correlation
+
+Feature importance should not be confused with correlation.
+
+Suppose:
+
+```text
+Feature A ↔ Target
+Correlation = 0.80
+```
+
+This doesn't automatically mean:
+
+```text
+Feature importance = 0.80
+```
+
+Correlation measures a specific statistical relationship.
+
+Feature importance measures how useful the feature is **to a particular predictive model/importance method**.
+
+A feature can have:
+
+```text
+low linear correlation
+```
+
+but still be highly important to a nonlinear model.
+
+For example:
+
+$$
+y=x^2
+$$
+
+If $x$ is symmetrically distributed around zero, its linear correlation with $y$ can be weak even though $x$ completely determines $y$.
+
+---
+
+# 26. Feature Importance Does Not Mean Causality
+
+This is probably the most important conceptual warning.
+
+Suppose:
+
+```text
+Ice cream sales → important
+Temperature → important
+Drowning → important
+```
+
+You cannot conclude:
+
+> Ice cream causes drowning.
+
+There may be a third variable:
+
+```text
+Hot weather
+     │
+ ┌───┴────┐
+ ↓        ↓
+Ice cream  Swimming
+             ↓
+          Drowning
+```
+
+Feature importance tells you:
+
+> **The model found this feature useful for prediction.**
+
+It does NOT tell you:
+
+> **This feature causes the target.**
+
+---
+
+# 27. Comparing the Main Methods
+
+| Method | Works with | Main idea | Main weakness |
+|---|---|---|---|
+| Tree `feature_importances_` | Tree models | Impurity reduction | Can be biased |
+| Permutation Importance | Almost any model | Shuffle feature and measure performance drop | Can struggle with correlated features |
+| Coefficients | Linear models | Magnitude of coefficients | Scale-sensitive |
+| SHAP | Many model types | Contribution of each feature | More computationally expensive |
+
+---
+
+# 28. Example: Random Forest + Three Methods
+
+Let's say we have:
+
+```python
+X_train
+y_train
+X_test
+y_test
+```
+
+Train:
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(
+    n_estimators=200,
+    random_state=42
+)
+
+rf.fit(X_train, y_train)
+```
+
+### Method 1 — Built-in importance
+
+```python
+rf.feature_importances_
+```
+
+---
+
+### Method 2 — Permutation
+
+```python
+from sklearn.inspection import permutation_importance
+
+result = permutation_importance(
+    rf,
+    X_test,
+    y_test,
+    n_repeats=10,
+    random_state=42
+)
+
+result.importances_mean
+```
+
+---
+
+### Method 3 — SHAP
+
+For supported models, you can use SHAP:
+
+```python
+import shap
+
+explainer = shap.TreeExplainer(rf)
+
+shap_values = explainer.shap_values(X_test)
+```
+
+The exact SHAP output structure can vary by SHAP version and model type, so inspect the returned object before plotting.
+
+---
+
+# 29. Why Different Methods Can Give Different Results
+
+Suppose:
+
+```text
+Feature        Tree MDI    Permutation
+income           0.45         0.30
+age              0.25         0.35
+education        0.20         0.20
+experience       0.10         0.15
+```
+
+Which one is correct?
+
+There isn't necessarily a single "correct" answer.
+
+They answer slightly different questions.
+
+### MDI asks:
+
+> How much did this feature reduce impurity across the trees?
+
+### Permutation asks:
+
+> How much does model performance suffer when this feature's information is destroyed?
+
+### SHAP asks:
+
+> How much does this feature contribute to individual predictions, aggregated across observations?
+
+That's why **understanding the method is more important than blindly looking at an importance number.**
+
+---
+
+# 30. Feature Importance with Random Forest and OOB
+
+Since you recently studied **OOB score**, there's an interesting connection.
+
+Random Forest can use:
+
+**Out-of-Bag samples**
+
+to estimate model performance.
+
+Permutation importance can also be calculated using OOB predictions in certain implementations/workflows.
+
+Conceptually:
+
+```text
+Bootstrap sample
+      ↓
+Train tree
+      ↓
+Some samples left out
+      ↓
+OOB samples
+      ↓
+Evaluate
+      ↓
+Permute feature
+      ↓
+Evaluate again
+      ↓
+Performance decrease
+      ↓
+Feature importance
+```
+
+This avoids needing a separate validation set for that importance calculation.
+
+---
+
+# 31. Feature Importance in Regression
+
+Everything we've discussed applies to regression too.
+
+Suppose:
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+rf = RandomForestRegressor(
+    n_estimators=200,
+    random_state=42
+)
+
+rf.fit(X_train, y_train)
+
+importance = rf.feature_importances_
+```
+
+The concept is the same, but tree impurity for regression commonly uses **variance/MSE reduction** rather than Gini impurity.
+
+---
+
+# 32. Feature Importance with XGBoost / Gradient Boosting
+
+Tree-based boosting models also provide feature importance.
+
+For example, models from libraries such as:
+
+- XGBoost
+- LightGBM
+- CatBoost
+
+can provide different importance measures.
+
+For example, XGBoost can report concepts such as:
+
+```text
+gain
+weight
+cover
+```
+
+These don't all mean the same thing.
+
+### Gain
+
+How much a feature improves the objective when used for splitting.
+
+### Weight
+
+How frequently a feature is used for splitting.
+
+### Cover
+
+How many observations are affected by splits involving the feature.
+
+So even within one model family:
+
+> **"Feature importance" can have multiple definitions.**
+
+---
+
+# 33. Feature Importance in Neural Networks
+
+Neural networks don't normally have a simple:
+
+```python
+model.feature_importances_
+```
+
+like Random Forest.
+
+Why?
+
+Because information flows through many layers:
+
+```text
+Input
+ ↓
+Dense
+ ↓
+Dense
+ ↓
+Dense
+ ↓
+Output
+```
+
+A feature's influence isn't represented by a single straightforward coefficient.
+
+Methods such as:
+
+- permutation importance
+- SHAP
+- Integrated Gradients
+- saliency methods
+
+can be used instead.
+
+---
+
+# 34. Feature Importance Workflow
+
+A practical workflow looks like this:
+
+```text
+             Dataset
+                ↓
+          Train/test split
+                ↓
+          Train model
+                ↓
+       ┌────────┴────────┐
+       ↓                 ↓
+ Tree importance   Permutation
+       ↓                 ↓
+       └────────┬────────┘
+                ↓
+          Compare results
+                ↓
+      Investigate important
+            features
+                ↓
+     Feature selection if needed
+                ↓
+       Retrain + evaluate
+                ↓
+          Final model
+```
+
+---
+
+# 35. Important Mistakes to Avoid
+
+### ❌ Mistake 1
+
+Assuming:
+
+```text
+importance = causality
+```
+
+Wrong.
+
+---
+
+### ❌ Mistake 2
+
+Assuming low importance means the feature is useless.
+
+Correlated features can hide importance.
+
+---
+
+### ❌ Mistake 3
+
+Comparing raw linear coefficients without scaling.
+
+```text
+coef(age) = 500
+coef(income) = 0.02
+```
+
+doesn't mean age is more important.
+
+---
+
+### ❌ Mistake 4
+
+Using only one importance method.
+
+For important projects, compare:
+
+```text
+MDI
+Permutation
+SHAP
+```
+
+when appropriate.
+
+---
+
+### ❌ Mistake 5
+
+Doing feature selection before cross-validation.
+
+This can cause data leakage.
+
+---
+
+### ❌ Mistake 6
+
+Assuming feature importance is stable.
+
+If you retrain the model on another sample, importance values can change.
+
+You should examine stability when feature selection or interpretation matters.
+
+---
+
+# 36. A Good Practical Example
+
+Suppose you're building a customer churn model:
+
+```text
+Features:
+
+age
+monthly_charge
+contract_length
+tenure
+support_calls
+payment_method
+```
+
+Random Forest gives:
+
+```text
+contract_length    0.31
+tenure             0.25
+monthly_charge     0.20
+support_calls      0.14
+age                0.06
+payment_method     0.04
+```
+
+You might conclude:
+
+```text
+contract_length
+       ↓
+   strongest
+       ↓
+tenure
+       ↓
+monthly_charge
+       ↓
+support_calls
+       ↓
+age
+       ↓
+payment_method
+```
+
+Then use permutation importance:
+
+```text
+contract_length    0.21
+tenure             0.18
+monthly_charge     0.08
+support_calls      0.07
+age                0.01
+payment_method    -0.01
+```
+
+Now you notice something interesting:
+
+```text
+MDI says:
+monthly_charge = 0.20
+
+Permutation says:
+monthly_charge = 0.08
+```
+
+This is a signal to investigate the relationship between these features, model behavior, and possibly correlated variables.
+
+---
+
+# 37. What You Should Learn for ML
+
+Since you're currently studying **ensemble learning → Bagging → Random Forest**, I'd learn feature importance in this order:
+
+### Level 1 — Must know
+
+```text
+1. What feature importance means
+2. Decision Tree feature importance
+3. Random Forest feature importance
+4. feature_importances_
+5. MDI / impurity reduction
+```
+
+### Level 2 — Very important
+
+```text
+6. Permutation importance
+7. n_repeats
+8. mean importance
+9. standard deviation
+10. negative permutation importance
+```
+
+### Level 3 — Important for interpretation
+
+```text
+11. Correlated features
+12. High-cardinality bias
+13. Feature importance ≠ causality
+14. Feature importance ≠ correlation
+15. Feature selection
+16. Data leakage
+```
+
+### Level 4 — Advanced
+
+```text
+17. SHAP
+18. Global explanations
+19. Local explanations
+20. SHAP values
+21. Model-specific vs model-agnostic explanations
+```
+
+---
+
+# 38. The Most Important Mental Model
+
+Remember this:
+
+```text
+Feature Importance
+       │
+       ├── "How useful is this feature
+       │    to this model?"
+       │
+       └── NOT
+            │
+            ├── "Does this feature cause the target?"
+            │
+            ├── "Is this feature correlated with target?"
+            │
+            └── "Is this feature universally important?"
+```
+
+And for your current **Random Forest/Ensemble Learning** studies, remember the three most important techniques:
+
+```text
+                    Feature Importance
+                           │
+          ┌────────────────┼────────────────┐
+          ↓                ↓                ↓
+      MDI / Built-in   Permutation         SHAP
+      importance       importance
+          │                │                │
+    Tree impurity      Performance       Prediction
+       reduction        decrease         contribution
+```
+
+**If you're working with Random Forest, don't stop at `rf.feature_importances_`.** Understanding **Permutation Importance + correlated-feature behavior + SHAP** will give you a much stronger understanding of model interpretability.
