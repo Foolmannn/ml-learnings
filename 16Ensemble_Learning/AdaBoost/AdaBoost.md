@@ -1164,3 +1164,589 @@ $$
 AdaBoost builds the ensemble stage by stage to reduce this loss.
 
 ---
+
+# 28. Why Does the Weight Update Make Sense?
+
+Recall:
+
+$$
+w_i^{new}
+=
+w_i e^{-\alpha y_i h(x_i)}
+$$
+
+For correct classification:
+
+$$
+yh(x)=+1
+$$
+
+so:
+
+$$
+e^{-\alpha}
+$$
+
+decreases the weight.
+
+For incorrect classification:
+
+$$
+yh(x)=-1
+$$
+
+so:
+
+$$
+e^{+\alpha}
+$$
+
+increases the weight.
+
+This means the sample weights are closely related to the model's **exponential loss**.
+
+So AdaBoost isn't just arbitrarily changing weights—it has a mathematical optimization interpretation.
+
+---
+
+# 29. AdaBoost vs Gradient Boosting
+
+These are often confused.
+
+| AdaBoost                                     | Gradient Boosting                            |
+| -------------------------------------------- | -------------------------------------------- |
+| Focuses on misclassified/high-weight samples | Fits residuals/negative gradients            |
+| Uses sample weighting                        | Uses gradient information                    |
+| Classical formulation uses exponential loss  | Can optimize many differentiable losses      |
+| Often uses shallow trees                     | Usually uses shallow trees                   |
+| Sequential                                   | Sequential                                   |
+| Classification-focused historically          | Classification + regression                  |
+| More sensitive to noisy observations         | Also can overfit, but has different behavior |
+
+Conceptually:
+
+### AdaBoost
+
+```text
+Wrong samples
+      ↓
+Increase their weight
+      ↓
+Next learner focuses on them
+```
+
+### Gradient Boosting
+
+```text
+Current predictions
+       ↓
+Calculate residual/gradient
+       ↓
+Train learner on residual direction
+       ↓
+Add learner
+```
+
+---
+
+# 30. AdaBoost vs Random Forest
+
+Since you've just studied Random Forest, this distinction is useful.
+
+### Random Forest
+
+Uses:
+
+```text
+Bootstrap samples
++
+Random feature subsets
++
+Many independent trees
++
+Voting
+```
+
+Main idea:
+
+> Build diverse trees independently.
+
+### AdaBoost
+
+Uses:
+
+```text
+Sample weighting
++
+Sequential weak learners
++
+Focus on previous errors
++
+Weighted voting
+```
+
+Main idea:
+
+> Build learners that progressively correct previous mistakes.
+
+---
+
+# 31. Advantages of AdaBoost
+
+### 1. Simple concept
+
+The basic idea is intuitive:
+
+> Focus more on difficult examples.
+
+### 2. Strong performance
+
+It can turn weak learners into a strong ensemble.
+
+### 3. Works well with simple trees
+
+Decision stumps can be surprisingly powerful when combined.
+
+### 4. Less feature engineering in many cases
+
+Tree-based learners can naturally handle nonlinear relationships and feature interactions.
+
+### 5. Can be relatively compact
+
+A large number of very small trees can sometimes represent a complex model efficiently.
+
+---
+
+# 32. Disadvantages of AdaBoost
+
+### 1. Sensitive to noisy data
+
+This is one of the biggest weaknesses.
+
+Suppose one sample has an incorrect label:
+
+```text
+Actual label = 1
+but true pattern suggests = 0
+```
+
+AdaBoost repeatedly sees this sample as "wrong."
+
+Therefore:
+
+```text
+wrong
+ ↓
+weight ↑
+ ↓
+wrong
+ ↓
+weight ↑
+ ↓
+wrong
+ ↓
+weight ↑↑↑
+```
+
+The algorithm can end up focusing too much on noise.
+
+---
+
+### 2. Sensitive to outliers
+
+An extreme observation may repeatedly be difficult to classify.
+
+Its weight can become very high.
+
+---
+
+### 3. Sequential training
+
+Because learners depend on previous learners:
+
+```text
+Learner 1 → Learner 2 → Learner 3 → ...
+```
+
+training is less naturally parallelizable than Bagging/Random Forest.
+
+---
+
+### 4. Hyperparameter tuning is important
+
+You often need to tune:
+
+```text
+n_estimators
+learning_rate
+base estimator complexity
+```
+
+---
+
+# 33. When Should You Use AdaBoost?
+
+AdaBoost can be a good choice when:
+
+* Dataset isn't dominated by noisy observations
+* You want a strong classifier from weak learners
+* The relationships are nonlinear
+* You want a classic boosting algorithm
+* You are working with structured/tabular data
+
+For noisy datasets, you may want to compare it against:
+
+```text
+Random Forest
+Gradient Boosting
+HistGradientBoosting
+XGBoost
+LightGBM
+CatBoost
+```
+
+depending on the problem and environment.
+
+---
+
+# 34. A Small End-to-End Example
+
+```python
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+X, y = make_classification(
+    n_samples=1000,
+    n_features=10,
+    n_informative=5,
+    random_state=42
+)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+base_model = DecisionTreeClassifier(
+    max_depth=1,
+    random_state=42
+)
+
+model = AdaBoostClassifier(
+    estimator=base_model,
+    n_estimators=100,
+    learning_rate=1.0,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+```
+
+---
+
+# 35. Understanding the Model Internally
+
+After fitting:
+
+```python
+model.estimators_
+```
+
+gives the individual weak learners.
+
+For example:
+
+```python
+len(model.estimators_)
+```
+
+might give:
+
+```text
+100
+```
+
+if:
+
+```python
+n_estimators=100
+```
+
+You can inspect their weights using:
+
+```python
+model.estimator_weights_
+```
+
+Conceptually:
+
+```text
+Estimator 1 → α₁
+Estimator 2 → α₂
+Estimator 3 → α₃
+...
+```
+
+You can also inspect their errors:
+
+```python
+model.estimator_errors_
+```
+
+So:
+
+```python
+model.estimator_weights_
+model.estimator_errors_
+```
+
+are particularly useful for understanding AdaBoost.
+
+---
+
+# 36. Important Relationship
+
+There is a direct relationship:
+
+$$
+\epsilon_t
+\rightarrow
+\alpha_t
+$$
+
+Specifically:
+
+$$
+\alpha_t=
+\frac12
+\ln
+\frac{1-\epsilon_t}{\epsilon_t}
+$$
+
+Therefore:
+
+```text
+Lower error
+     ↓
+Higher alpha
+     ↓
+More influence
+```
+
+and:
+
+```text
+Higher error
+     ↓
+Lower alpha
+     ↓
+Less influence
+```
+
+---
+
+# 37. Complete Mental Model
+
+If you remember only one thing about AdaBoost, remember this:
+
+```text
+                    DATA
+                      │
+                      ▼
+             Equal sample weights
+                      │
+                      ▼
+              Train weak learner
+                      │
+                      ▼
+             Calculate its error
+                      │
+                      ▼
+            Calculate learner α
+                      │
+                      ▼
+        ┌─────────────┴─────────────┐
+        │                           │
+     Correct                     Wrong
+        │                           │
+        ▼                           ▼
+   Weight decreases           Weight increases
+        │                           │
+        └─────────────┬─────────────┘
+                      ▼
+                Normalize
+                      │
+                      ▼
+             Train next learner
+                      │
+                      ▼
+                    ...
+                      │
+                      ▼
+            Weighted combination
+                      │
+                      ▼
+               FINAL MODEL
+```
+
+---
+
+# 38. The Most Important Formulas
+
+For your ML notes, these are the formulas I'd mark as **must know**.
+
+### Initial sample weight
+
+$$
+\boxed{w_i=\frac1N}
+$$
+
+### Weighted error
+
+$$
+\boxed{
+\epsilon_t=
+\sum_iw_iI(y_i\neq h_t(x_i))
+}
+$$
+
+### Learner weight
+
+$$
+\boxed{
+\alpha_t=
+\frac12
+\ln
+\left(
+\frac{1-\epsilon_t}{\epsilon_t}
+\right)
+}
+$$
+
+### Sample weight update
+
+$$
+\boxed{
+w_i^{new}
+=
+w_i e^{-\alpha_t y_i h_t(x_i)}
+}
+$$
+
+### Final classifier
+
+$$
+\boxed{
+H(x)=
+sign
+\left(
+\sum_t\alpha_th_t(x)
+\right)
+}
+$$
+
+### Exponential loss
+
+$$
+\boxed{
+L=e^{-yF(x)}
+}
+$$
+
+---
+
+# 39. AdaBoost in One Example
+
+Imagine you're trying to classify movies as:
+
+```text
+Good / Bad
+```
+
+Your first stump uses:
+
+```text
+Rating > 7?
+```
+
+It gets many movies right but gets some wrong.
+
+AdaBoost says:
+
+```text
+Those incorrectly classified movies are difficult.
+```
+
+Increase their weights.
+
+Second stump might learn:
+
+```text
+Votes > threshold?
+```
+
+It focuses more on the previously difficult movies.
+
+Third stump:
+
+```text
+Runtime > threshold?
+```
+
+Again focuses on remaining mistakes.
+
+Eventually:
+
+```text
+Stump 1 ─┐
+Stump 2 ─┤
+Stump 3 ─┤
+Stump 4 ─┤
+Stump 5 ─┘
+     ↓
+Weighted combination
+     ↓
+Strong classifier
+```
+
+That's the essence of AdaBoost.
+
+---
+
+## Where AdaBoost fits in your Ensemble Learning roadmap
+
+Since you've already covered **Voting → Bagging → Random Forest**, a good progression is:
+
+```text
+Ensemble Learning
+       │
+       ├── Voting
+       │
+       ├── Bagging
+       │     └── Random Forest
+       │
+       └── Boosting
+             │
+             ├── AdaBoost       ← current
+             │
+             ├── Gradient Boosting
+             │
+             ├── XGBoost
+             │
+             ├── LightGBM
+             │
+             └── CatBoost
+```
+
+The **next concept to study should be Gradient Boosting**, because it will make the transition from **AdaBoost's "focus on errors"** to **gradient-based error correction** much easier.
