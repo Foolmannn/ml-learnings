@@ -501,3 +501,575 @@ These trees are called **weak learners** because individually they aren't very p
 But hundreds of small trees can collectively create a very powerful model.
 
 ---
+
+# 10. Why shallow trees?
+
+Suppose we use very deep trees.
+
+They can learn:
+
+```text
+Training data extremely well
+```
+
+but may memorize noise.
+
+That causes:
+
+```text
+Overfitting
+```
+
+Gradient Boosting therefore commonly uses:
+
+```text
+small trees
++
+many iterations
++
+small learning rate
+```
+
+For example:
+
+```python
+GradientBoostingRegressor(
+    n_estimators=300,
+    learning_rate=0.05,
+    max_depth=3
+)
+```
+
+---
+
+# 11. Learning Rate
+
+One of the most important hyperparameters is:
+
+```python
+learning_rate
+```
+
+It controls how much contribution each new tree makes.
+
+The update is:
+
+$$
+F_m(x)=F_{m-1}(x)+\eta h_m(x)
+$$
+
+where \(\eta\) is the learning rate.
+
+### Large learning rate
+
+```text
+learning_rate = 1.0
+```
+
+Each tree has a large effect.
+
+Advantages:
+
+* faster learning
+* fewer trees required
+
+Disadvantages:
+
+* greater chance of overfitting
+* less gradual learning
+
+---
+
+### Small learning rate
+
+```text
+learning_rate = 0.01
+```
+
+Each tree makes a small correction.
+
+Advantages:
+
+* usually better generalization
+* more controlled learning
+
+Disadvantages:
+
+* requires more trees
+* training takes longer
+
+---
+
+# 12. Learning Rate vs Number of Estimators
+
+There is an important relationship:
+
+```text
+Lower learning rate
+        ↓
+Need more trees
+```
+
+For example:
+
+```text
+learning_rate = 0.1
+n_estimators = 100
+```
+
+versus:
+
+```text
+learning_rate = 0.01
+n_estimators = 1000
+```
+
+The second approach may produce better generalization, although there is no universal best combination.
+
+A common practical strategy is:
+
+```text
+Choose relatively small learning_rate
++
+increase n_estimators
++
+use validation / early stopping
+```
+
+---
+
+# 13. n_estimators
+
+```python
+n_estimators
+```
+
+means:
+
+> Number of boosting stages / trees.
+
+Example:
+
+```python
+n_estimators=100
+```
+
+means approximately:
+
+```text
+Tree 1
+Tree 2
+Tree 3
+...
+Tree 100
+```
+
+Increasing it generally increases model capacity.
+
+Too few:
+
+```text
+Underfitting
+```
+
+Too many:
+
+```text
+Possible overfitting
+```
+
+---
+
+# 14. max_depth
+
+Controls the depth of each decision tree.
+
+Example:
+
+```python
+max_depth=1
+```
+
+creates decision stumps.
+
+```python
+max_depth=3
+```
+
+creates moderately complex trees.
+
+```python
+max_depth=10
+```
+
+creates much more complex trees.
+
+Generally:
+
+```text
+Smaller depth → simpler model → less overfitting
+Larger depth  → complex model → more overfitting
+```
+
+---
+
+# 15. Gradient Boosting Classification
+
+Gradient Boosting can also perform classification.
+
+For binary classification, the model predicts a score that can be converted into a probability.
+
+For example:
+
+```text
+Tree ensemble score = 2.3
+```
+
+The sigmoid function converts it into probability:
+
+$$
+P(y=1)=\frac{1}{1+e^{-F(x)}}
+$$
+
+Then:
+
+```text
+P > 0.5 → class 1
+P < 0.5 → class 0
+```
+
+The loss commonly used is **log loss / binary cross-entropy**.
+
+---
+
+# 16. Classification Example
+
+Suppose we want to predict whether an email is spam.
+
+Features:
+
+```text
+number of links
+number of words
+number of capital letters
+contains "free"
+sender reputation
+```
+
+First tree:
+
+```text
+Spam probability → 0.55
+```
+
+The model makes errors.
+
+Second tree focuses on correcting those errors:
+
+```text
+Spam probability → 0.62
+```
+
+Third:
+
+```text
+Spam probability → 0.71
+```
+
+Eventually:
+
+```text
+Final probability → 0.94
+```
+
+Therefore:
+
+```text
+Spam
+```
+
+---
+
+# 17. Gradient Boosting vs AdaBoost
+
+You just studied AdaBoost, so this distinction is extremely important.
+
+### AdaBoost
+
+AdaBoost focuses on **misclassified observations**.
+
+Conceptually:
+
+```text
+Wrong prediction
+      ↓
+Increase sample weight
+      ↓
+Next learner focuses more on it
+```
+
+### Gradient Boosting
+
+Gradient Boosting focuses on the **negative gradient of the loss function**.
+
+```text
+Current prediction
+       ↓
+Calculate loss
+       ↓
+Calculate gradient
+       ↓
+Train next tree to reduce loss
+```
+
+So:
+
+| AdaBoost                         | Gradient Boosting                 |
+| -------------------------------- | --------------------------------- |
+| Focuses on misclassified samples | Fits negative gradients/residuals |
+| Changes sample weights           | Builds correction model           |
+| Usually exponential loss         | Can use different loss functions  |
+| Sequential                       | Sequential                        |
+| Often uses weak trees            | Usually shallow trees             |
+| Sensitive to noisy/outlier data  | Also can be sensitive to noise    |
+
+---
+
+# 18. Gradient Boosting vs Random Forest
+
+This is another important comparison.
+
+### Random Forest
+
+Trees are generally trained **independently**.
+
+```text
+        Dataset
+      /    |    \
+   Tree1 Tree2 Tree3
+      \    |    /
+       Prediction
+```
+
+### Gradient Boosting
+
+Trees are trained **sequentially**.
+
+```text
+Dataset
+   ↓
+Tree 1
+   ↓
+Errors
+   ↓
+Tree 2
+   ↓
+Errors
+   ↓
+Tree 3
+```
+
+| Random Forest                     | Gradient Boosting                                  |
+| --------------------------------- | -------------------------------------------------- |
+| Bagging                           | Boosting                                           |
+| Parallel trees                    | Sequential trees                                   |
+| Trees independent                 | Trees dependent                                    |
+| Usually deep trees                | Usually shallow trees                              |
+| Uses bootstrap samples            | Typically fits sequentially to residuals/gradients |
+| Less sensitive to hyperparameters | More sensitive                                     |
+| Easier to tune                    | More tuning required                               |
+| Strong baseline                   | Often higher predictive performance                |
+
+---
+
+# 19. Gradient Boosting vs Bagging
+
+### Bagging
+
+Main goal:
+
+> Reduce variance.
+
+Example:
+
+```text
+Random Forest
+```
+
+Train multiple models independently and average them.
+
+### Boosting
+
+Main goal:
+
+> Build a strong learner by sequentially reducing errors/bias.
+
+Example:
+
+```text
+AdaBoost
+Gradient Boosting
+XGBoost
+LightGBM
+CatBoost
+```
+
+Simplified:
+
+```text
+Bagging:
+
+Model 1 ─┐
+Model 2 ─┤
+Model 3 ─┼──> Average
+Model 4 ─┤
+Model 5 ─┘
+
+
+Boosting:
+
+Model 1
+   ↓
+Correction
+   ↓
+Model 2
+   ↓
+Correction
+   ↓
+Model 3
+   ↓
+Final model
+```
+
+---
+
+# 20. Important Hyperparameters in sklearn
+
+Let's look at the implementation.
+
+```python
+from sklearn.ensemble import GradientBoostingClassifier
+
+gb = GradientBoostingClassifier(
+    n_estimators=100,
+    learning_rate=0.1,
+    max_depth=3,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    subsample=1.0,
+    max_features=None,
+    random_state=42
+)
+```
+
+Now understand each one.
+
+---
+
+## `n_estimators`
+
+Number of boosting stages.
+
+```python
+n_estimators=100
+```
+
+More trees → more capacity.
+
+---
+
+## `learning_rate`
+
+Contribution of each tree.
+
+```python
+learning_rate=0.1
+```
+
+Smaller learning rate usually requires more trees.
+
+---
+
+## `max_depth`
+
+Maximum depth of individual trees.
+
+```python
+max_depth=3
+```
+
+Controls tree complexity.
+
+---
+
+## `min_samples_split`
+
+Minimum samples required to split an internal node.
+
+```python
+min_samples_split=2
+```
+
+Increasing it makes trees more conservative.
+
+---
+
+## `min_samples_leaf`
+
+Minimum number of samples that must exist in a leaf.
+
+```python
+min_samples_leaf=1
+```
+
+Increasing it can reduce overfitting.
+
+---
+
+## `subsample`
+
+Fraction of training samples used for each boosting stage.
+
+```python
+subsample=1.0
+```
+
+means:
+
+```text
+100% of samples
+```
+
+while:
+
+```python
+subsample=0.8
+```
+
+means approximately:
+
+```text
+80% of samples
+```
+
+Using less than 1.0 introduces randomness and is called **stochastic gradient boosting**.
+
+---
+
+## `max_features`
+
+Number of features considered when finding splits.
+
+Possible values include:
+
+```python
+None
+"sqrt"
+"log2"
+```
+
+or a fraction/integer.
+
+This can reduce correlation and overfitting.
+
+---
