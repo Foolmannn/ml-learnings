@@ -482,3 +482,513 @@ $$
 And the process continues.
 
 ---
+
+# 12. The intuition behind the trees
+
+Imagine the current model predicts:
+
+$$
+\hat y=60
+$$
+
+while:
+
+$$
+y=75
+$$
+
+The model is:
+
+$$
+15
+$$
+
+too low.
+
+So the next tree should learn approximately:
+
+$$
++15
+$$
+
+If another observation has:
+
+$$
+y=40,\qquad\hat y=50
+$$
+
+then its residual is:
+
+$$
+-10
+$$
+
+The next tree should learn:
+
+$$
+-10
+$$
+
+So each tree is effectively learning:
+
+$$
+\boxed{\text{Correction to the current prediction}}
+$$
+
+---
+
+# 13. Learning rate
+
+The learning rate controls how much each tree contributes.
+
+The update is:
+
+$$
+F_m(x)
+=
+F_{m-1}(x)
++
+\eta\gamma_mh_m(x)
+$$
+
+Suppose:
+
+$$
+h_m(x)=20
+$$
+
+and:
+
+$$
+\eta=0.1
+$$
+
+Then the model only moves:
+
+$$
+0.1(20)=2
+$$
+
+rather than adding the full 20.
+
+### Small learning rate
+
+$$
+\eta=0.01
+$$
+
+Small updates → generally requires more trees.
+
+### Large learning rate
+
+$$
+\eta=0.5
+$$
+
+Large updates → generally requires fewer trees.
+
+This gives the important relationship:
+
+$$
+\boxed{
+\text{Lower learning rate}
+\Longleftrightarrow
+\text{usually more trees}
+}
+$$
+
+---
+
+# 14. Why does Gradient Boosting use trees?
+
+Suppose the negative gradient is:
+
+$$
+r_i=
+-\frac{\partial L_i}{\partial F(x_i)}
+$$
+
+We need a function that can approximate:
+
+$$
+x_i\rightarrow r_i
+$$
+
+Decision trees are convenient because they can approximate nonlinear relationships.
+
+For example:
+
+$$
+h_1(x)=
+\begin{cases}
+-10 & x<5\\
++8 & x\ge5
+\end{cases}
+$$
+
+Another tree can refine the approximation:
+
+$$
+h_2(x)=
+\begin{cases}
+-3 & x<2\\
++4 & x\ge2
+\end{cases}
+$$
+
+Together:
+
+$$
+F(x)=F_0(x)+\eta h_1(x)+\eta h_2(x)+\cdots
+$$
+
+can create a complex nonlinear prediction function.
+
+---
+
+# 15. Gradient Boosting as functional gradient descent
+
+This is the deeper mathematical interpretation.
+
+Ordinary gradient descent:
+
+$$
+\theta_m
+=
+\theta_{m-1}
+-
+\eta
+\nabla_\theta J(\theta)
+$$
+
+Gradient Boosting:
+
+$$
+\boxed{
+F_m(x)
+=
+F_{m-1}(x)
+-
+\eta
+\frac{\delta\mathcal L}{\delta F(x)}
+}
+$$
+
+where:
+
+$$
+\frac{\delta\mathcal L}{\delta F(x)}
+$$
+
+is a **functional gradient**.
+
+We can't simply write the exact gradient function as a normal parameter vector, so we approximate it using a weak learner:
+
+$$
+h_m(x)
+\approx
+-\frac{\delta\mathcal L}{\delta F(x)}
+$$
+
+Thus:
+
+$$
+\boxed{
+\text{Gradient Boosting}
+=
+\text{Gradient Descent in Function Space}
+}
+$$
+
+This is the central mathematical idea.
+
+---
+
+# 16. Different loss functions → different "residuals"
+
+This is another very important concept.
+
+The new tree isn't always trained on ordinary:
+
+$$
+y-\hat y
+$$
+
+Instead, it is trained on the **negative gradient of whatever loss function we choose**.
+
+### Squared error
+
+$$
+L(y,F)=\frac12(y-F)^2
+$$
+
+Negative gradient:
+
+$$
+\boxed{r=y-F}
+$$
+
+So we get ordinary residuals.
+
+---
+
+### Absolute error
+
+$$
+L(y,F)=|y-F|
+$$
+
+The derivative involves the sign:
+
+$$
+\frac{\partial L}{\partial F}
+=
+-\operatorname{sign}(y-F)
+$$
+
+Therefore the negative gradient is approximately:
+
+$$
+\boxed{
+r=\operatorname{sign}(y-F)
+}
+$$
+
+So the new tree focuses on whether predictions are too high or too low.
+
+---
+
+### Logistic loss for binary classification
+
+For binary classification, let:
+
+$$
+p_i=P(y_i=1|x_i)
+$$
+
+and:
+
+$$
+p_i=\sigma(F(x_i))
+$$
+
+where:
+
+$$
+\sigma(z)=\frac{1}{1+e^{-z}}
+$$
+
+Using binary cross-entropy:
+
+$$
+L_i
+=
+-y_i\log p_i
+-
+(1-y_i)\log(1-p_i)
+$$
+
+The gradient with respect to \(F(x_i)\) becomes:
+
+$$
+\boxed{
+\frac{\partial L_i}{\partial F(x_i)}
+=
+p_i-y_i
+}
+$$
+
+Therefore the negative gradient is:
+
+$$
+\boxed{
+r_i=y_i-p_i
+}
+$$
+
+So for classification, the tree is essentially learning corrections based on:
+
+$$
+\boxed{y_i-p_i}
+$$
+
+rather than simply \(y_i-\hat y_i\).
+
+---
+
+# 17. The entire algorithm mathematically
+
+You can remember Gradient Boosting using this sequence:
+
+### Initialization
+
+$$
+\boxed{
+F_0(x)=
+\arg\min_\gamma
+\sum_iL(y_i,\gamma)
+}
+$$
+
+### For \(m=1,\ldots,M\)
+
+Calculate negative gradient:
+
+$$
+\boxed{
+r_{im}
+=
+-
+\left[
+\frac{\partial L(y_i,F(x_i))}
+{\partial F(x_i)}
+\right]_{F=F_{m-1}}
+}
+$$
+
+Fit tree:
+
+$$
+\boxed{
+h_m(x_i)\approx r_{im}
+}
+$$
+
+Find optimal step:
+
+$$
+\boxed{
+\gamma_m=
+\arg\min_\gamma
+\sum_i
+L(y_i,F_{m-1}(x_i)+\gamma h_m(x_i))
+}
+$$
+
+Update:
+
+$$
+\boxed{
+F_m(x)
+=
+F_{m-1}(x)+
+\eta\gamma_mh_m(x)
+}
+$$
+
+Finally:
+
+$$
+\boxed{
+F_M(x)
+=
+F_0(x)+
+\eta\sum_{m=1}^{M}\gamma_mh_m(x)
+}
+$$
+
+---
+
+# 18. One picture to remember the mathematics
+
+```text
+                 Training Data
+                       │
+                       ▼
+              Initial Prediction
+                    F₀(x)
+                       │
+                       ▼
+              Calculate Gradient
+                       │
+                       ▼
+          Negative Gradient / Residual
+                       │
+                       ▼
+              Train Decision Tree
+                    h₁(x)
+                       │
+                       ▼
+              Find optimal γ₁
+                       │
+                       ▼
+       F₁(x) = F₀(x) + ηγ₁h₁(x)
+                       │
+                       ▼
+              Calculate New Gradient
+                       │
+                       ▼
+              Train Tree 2
+                    h₂(x)
+                       │
+                       ▼
+       F₂(x) = F₁(x) + ηγ₂h₂(x)
+                       │
+                       ▼
+                     ...
+                       │
+                       ▼
+       Fₘ(x) = Fₘ₋₁(x) + ηγₘhₘ(x)
+```
+
+---
+
+## 19. The most important formulas for your ML notes
+
+If you're studying Gradient Boosting mathematically, focus on these **five formulas**:
+
+### ① Objective
+
+$$
+\boxed{
+\mathcal L(F)=\sum_iL(y_i,F(x_i))
+}
+$$
+
+### ② Negative gradient
+
+$$
+\boxed{
+r_{im}
+=
+-\frac{\partial L(y_i,F(x_i))}
+{\partial F(x_i)}
+}
+$$
+
+### ③ Weak learner
+
+$$
+\boxed{
+h_m(x_i)\approx r_{im}
+}
+$$
+
+### ④ Model update
+
+$$
+\boxed{
+F_m(x)=F_{m-1}(x)+\eta\gamma_mh_m(x)
+}
+$$
+
+### ⑤ Final model
+
+$$
+\boxed{
+F_M(x)=F_0(x)+
+\eta\sum_{m=1}^{M}\gamma_mh_m(x)
+}
+$$
+
+### In one sentence:
+
+$$
+\boxed{
+\text{Gradient Boosting}
+=
+\text{Sequentially fit trees to negative gradients and add their corrections}
+}
+$$
+
+The **big conceptual distinction from Bagging** is that Bagging trains trees independently and averages them, while Gradient Boosting trains each new tree based on the **current model's loss gradient**.
