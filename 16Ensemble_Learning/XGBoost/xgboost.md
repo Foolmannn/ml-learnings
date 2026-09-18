@@ -535,3 +535,476 @@ If the gain isn't large enough, the split isn't worthwhile.
 This is closely connected to XGBoost's `gamma` parameter, which specifies the minimum loss reduction required to make a split. ([XGBoost Documentation][3])
 
 ---
+
+# 13. Understanding `gamma`
+
+Suppose:
+
+```text
+Potential split gain = 3
+gamma = 5
+```
+
+Then:
+
+$$
+3-5=-2
+$$
+
+The split isn't worthwhile.
+
+But:
+
+```text
+Gain = 10
+gamma = 5
+```
+
+Then:
+
+$$
+10-5=5
+$$
+
+The split can be accepted.
+
+So:
+
+> **Higher `gamma` → harder to create new splits → simpler trees → potentially less overfitting.**
+
+---
+
+# 14. Simple intuition behind gradients
+
+Suppose our actual values are:
+
+```text
+Actual:
+100
+200
+300
+```
+
+Our current predictions are:
+
+```text
+Prediction:
+80
+220
+250
+```
+
+For squared error:
+
+$$
+L=\frac12(y-\hat y)^2
+$$
+
+The derivative with respect to prediction is:
+
+$$
+g=\hat y-y
+$$
+
+Therefore:
+
+```text
+Sample 1:
+80 - 100 = -20
+
+Sample 2:
+220 - 200 = +20
+
+Sample 3:
+250 - 300 = -50
+```
+
+The next tree learns patterns associated with these errors.
+
+The negative gradients indicate:
+
+> prediction should move upward.
+
+Positive gradients indicate:
+
+> prediction should move downward.
+
+The next tree therefore learns a correction.
+
+---
+
+# 15. Why use the Hessian?
+
+The gradient tells us:
+
+> **Which direction should we move?**
+
+The Hessian tells us:
+
+> **How quickly is the loss changing?**
+
+For squared error:
+
+$$
+L=\frac12(y-\hat y)^2
+$$
+
+First derivative:
+
+$$
+g=\hat y-y
+$$
+
+Second derivative:
+
+$$
+h=1
+$$
+
+For other losses, \(h\) changes depending on the prediction.
+
+Using both allows XGBoost to make a more informed optimization step.
+
+---
+
+# 16. Learning rate
+
+XGBoost doesn't necessarily add the entire tree prediction.
+
+Instead:
+
+$$
+\hat y^{(t)}
+=
+\hat y^{(t-1)}
++
+\eta f_t(x)
+$$
+
+where:
+
+$$
+\eta=\text{learning rate}
+$$
+
+In Python:
+
+```python
+learning_rate=0.1
+```
+
+Suppose:
+
+```text
+Current prediction = 50
+Tree prediction = 20
+learning_rate = 0.1
+```
+
+Then:
+
+$$
+50+0.1(20)
+$$
+
+$$
+=52
+$$
+
+instead of:
+
+$$
+50+20=70
+$$
+
+So the learning rate controls how aggressively each tree changes the model.
+
+---
+
+# 17. Learning rate vs number of trees
+
+These two parameters are strongly related:
+
+```text
+learning_rate ↓
+        ↓
+need more trees
+```
+
+For example:
+
+```text
+learning_rate = 0.3
+n_estimators = 100
+```
+
+versus:
+
+```text
+learning_rate = 0.05
+n_estimators = 500
+```
+
+The second approach makes smaller updates but more of them.
+
+A common practical strategy is to use a relatively small learning rate and enough boosting rounds, often combined with early stopping. ([XGBoost][4])
+
+---
+
+# 18. Important XGBoost hyperparameters
+
+This is probably the most important practical section.
+
+## A. `n_estimators`
+
+Number of boosting rounds/trees.
+
+```python
+XGBClassifier(
+    n_estimators=100
+)
+```
+
+Higher:
+
+```text
+more trees
+↓
+more model capacity
+↓
+potentially better training fit
+↓
+potential overfitting + longer training
+```
+
+---
+
+# 19. `learning_rate`
+
+Controls contribution of each tree.
+
+```python
+learning_rate=0.1
+```
+
+Lower:
+
+```text
+smaller updates
+↓
+usually need more trees
+```
+
+Higher:
+
+```text
+larger updates
+↓
+fewer trees may be needed
+```
+
+---
+
+# 20. `max_depth`
+
+Maximum depth of each tree.
+
+```python
+max_depth=6
+```
+
+Example:
+
+```text
+max_depth = 2
+
+      Root
+      /  \
+     /    \
+    A      B
+```
+
+versus:
+
+```text
+max_depth = 10
+
+          Root
+        /      \
+       ...     ...
+      many levels
+```
+
+Higher depth:
+
+```text
+more complex trees
+↓
+can capture complex relationships
+↓
+higher overfitting risk
+```
+
+Lower depth:
+
+```text
+simpler trees
+↓
+less variance
+↓
+may underfit
+```
+
+---
+
+# 21. `min_child_weight`
+
+Controls the minimum amount of Hessian/second-order information required in a child for a split.
+
+Conceptually:
+
+```text
+small min_child_weight
+        ↓
+easier to create leaves
+        ↓
+more complex tree
+```
+
+```text
+large min_child_weight
+        ↓
+harder to create leaves
+        ↓
+more conservative tree
+```
+
+It is an important regularization parameter.
+
+---
+
+# 22. `gamma`
+
+Minimum loss reduction required for a split.
+
+```python
+gamma=0
+```
+
+means splitting is easier.
+
+Increasing:
+
+```python
+gamma=5
+```
+
+makes splitting harder.
+
+Therefore:
+
+$$
+\boxed{\gamma\uparrow \Rightarrow \text{simpler trees}}
+$$
+
+---
+
+# 23. `subsample`
+
+Fraction of training samples used for each tree.
+
+Example:
+
+```python
+subsample=0.8
+```
+
+Each boosting round uses approximately 80% of the training observations.
+
+This introduces randomness and can reduce overfitting.
+
+```text
+subsample = 1.0
+    ↓
+all samples
+
+subsample = 0.8
+    ↓
+80% samples per tree
+```
+
+---
+
+# 24. `colsample_bytree`
+
+Fraction of features used for each tree.
+
+Suppose:
+
+```text
+100 features
+```
+
+and:
+
+```python
+colsample_bytree=0.7
+```
+
+roughly 70% of features are considered for that tree.
+
+This is similar in spirit to feature subsampling in Random Forest.
+
+XGBoost provides multiple column-sampling parameters, including by-tree and by-node approaches. ([GitHub][5])
+
+---
+
+# 25. `reg_lambda`
+
+L2 regularization.
+
+```python
+reg_lambda=1
+```
+
+Mathematically:
+
+$$
+\frac12\lambda\sum_jw_j^2
+$$
+
+Higher `reg_lambda`:
+
+```text
+stronger L2 regularization
+↓
+smaller leaf weights
+↓
+more conservative model
+```
+
+The official parameter documentation describes `lambda`/`reg_lambda` as the L2 regularization term on weights. ([XGBoost Documentation][3])
+
+---
+
+# 26. `reg_alpha`
+
+L1 regularization.
+
+```python
+reg_alpha=0
+```
+
+Mathematically:
+
+$$
+\alpha\sum_j|w_j|
+$$
+
+L1 regularization can encourage some weights toward zero.
+
+Useful especially when you want stronger sparsity/regularization.
+
+XGBoost exposes it as `alpha` or `reg_alpha`. ([XGBoost Documentation][3])
+
+---
