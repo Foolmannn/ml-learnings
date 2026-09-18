@@ -1103,3 +1103,831 @@ Then XGBoost calculates new gradients and Hessians based on the updated predicti
 And the process repeats.
 
 ---
+
+# 23. The complete mathematical training loop
+
+Now put everything together.
+
+### Initially:
+
+$$
+\hat y_i^{(0)}
+$$
+
+Then for each boosting round \(t\):
+
+### Step 1 — Current prediction
+
+$$
+\hat y_i^{(t-1)}
+$$
+
+### Step 2 — Gradient
+
+$$
+\boxed{
+g_i=
+\frac{\partial l(y_i,\hat y_i)}
+{\partial\hat y_i}
+}
+$$
+
+### Step 3 — Hessian
+
+$$
+\boxed{
+h_i=
+\frac{\partial^2l(y_i,\hat y_i)}
+{\partial\hat y_i^2}
+}
+$$
+
+### Step 4 — Candidate tree structures
+
+Consider possible feature splits.
+
+### Step 5 — Aggregate gradients and Hessians
+
+For each leaf:
+
+$$
+G_j=\sum_{i\in I_j}g_i
+$$
+
+$$
+H_j=\sum_{i\in I_j}h_i
+$$
+
+### Step 6 — Calculate leaf weight
+
+$$
+\boxed{
+w_j=-\frac{G_j}{H_j+\lambda}
+}
+$$
+
+### Step 7 — Calculate split gain
+
+$$
+\boxed{
+Gain=
+\frac12
+\left[
+\frac{G_L^2}{H_L+\lambda}
++
+\frac{G_R^2}{H_R+\lambda}
+-
+\frac{G^2}{H+\lambda}
+\right]
+-\gamma
+}
+$$
+
+### Step 8 — Select useful splits
+
+Build the tree.
+
+### Step 9 — Update predictions
+
+$$
+\boxed{
+\hat y_i^{(t)}
+=
+\hat y_i^{(t-1)}
++
+\eta f_t(x_i)
+}
+$$
+
+### Step 10 — Repeat
+
+```text
+New predictions
+      ↓
+New gradients
+      ↓
+New Hessians
+      ↓
+New tree
+      ↓
+New predictions
+      ↓
+...
+```
+
+---
+
+# 24. Important example: squared-error regression
+
+Let's connect this to a familiar loss.
+
+For regression, suppose:
+
+$$
+l(y,\hat y)
+=
+\frac12(y-\hat y)^2
+$$
+
+Equivalent to:
+
+$$
+l(y,\hat y)
+=
+\frac12(\hat y-y)^2
+$$
+
+---
+
+## Gradient
+
+Differentiate:
+
+$$
+g=
+\frac{\partial l}{\partial\hat y}
+$$
+
+Therefore:
+
+$$
+\boxed{
+g=\hat y-y
+}
+$$
+
+---
+
+## Hessian
+
+Differentiate again:
+
+$$
+h=
+\frac{\partial^2l}{\partial\hat y^2}
+$$
+
+Therefore:
+
+$$
+\boxed{
+h=1
+}
+$$
+
+So for squared-error regression:
+
+$$
+g_i=\hat y_i-y_i
+$$
+
+$$
+h_i=1
+$$
+
+This makes the XGBoost calculations particularly simple.
+
+---
+
+# 25. Connection to ordinary Gradient Boosting
+
+This is a very important conceptual connection.
+
+In ordinary gradient boosting, the next tree is related to the negative gradient:
+
+$$
+-r_i
+$$
+
+or, more generally:
+
+$$
+-\frac{\partial L}{\partial\hat y_i}
+$$
+
+XGBoost goes further.
+
+Instead of only considering:
+
+$$
+g_i
+$$
+
+it considers:
+
+$$
+\boxed{
+g_i+h_i
+}
+$$
+
+in the sense that both first- and second-order information determine the optimization.
+
+More precisely, the local objective is:
+
+$$
+g_if_t(x_i)
++
+\frac12h_if_t(x_i)^2
+$$
+
+This second-order approximation is one of the defining mathematical features of XGBoost.
+
+---
+
+# 26. Classification: binary logistic loss
+
+Now let's look at classification.
+
+For binary classification, XGBoost commonly models a raw score:
+
+$$
+z_i
+$$
+
+and converts it into probability using the sigmoid function:
+
+$$
+\boxed{
+p_i=\sigma(z_i)
+=
+\frac1{1+e^{-z_i}}
+}
+$$
+
+The binary cross-entropy loss is:
+
+$$
+l(y_i,p_i)
+=
+-y_i\log p_i
+-
+(1-y_i)\log(1-p_i)
+$$
+
+When expressed with respect to the raw score \(z_i\), the derivatives become:
+
+$$
+\boxed{
+g_i=p_i-y_i
+}
+$$
+
+and:
+
+$$
+\boxed{
+h_i=p_i(1-p_i)
+}
+$$
+
+So for binary logistic classification:
+
+```text
+Gradient:
+g = p - y
+
+Hessian:
+h = p(1-p)
+```
+
+This is a very important result.
+
+---
+
+# 27. Example of classification gradients
+
+Suppose:
+
+$$
+y=1
+$$
+
+and the current model predicts:
+
+$$
+p=0.8
+$$
+
+Then:
+
+$$
+g=0.8-1
+$$
+
+$$
+g=-0.2
+$$
+
+Hessian:
+
+$$
+h=0.8(1-0.8)
+$$
+
+$$
+h=0.16
+$$
+
+Another sample:
+
+$$
+y=0
+$$
+
+and:
+
+$$
+p=0.8
+$$
+
+Then:
+
+$$
+g=0.8-0
+$$
+
+$$
+g=0.8
+$$
+
+$$
+h=0.16
+$$
+
+Notice:
+
+* Correct confident prediction → relatively small gradient
+* Wrong prediction → larger gradient
+
+Therefore the next tree can focus on observations where the current model needs stronger correction.
+
+---
+
+# 28. Why does XGBoost use regularization?
+
+Without regularization, boosting can keep adding increasingly complex trees.
+
+For example:
+
+```text
+Tree 1
+Tree 2
+Tree 3
+...
+Tree 500
+```
+
+Eventually the model may start fitting noise.
+
+XGBoost controls this using:
+
+### L2 regularization
+
+$$
+\frac12\lambda\sum_jw_j^2
+$$
+
+### Leaf penalty
+
+$$
+\gamma T
+$$
+
+And practical tree-complexity controls such as:
+
+* `max_depth`
+* `min_child_weight`
+* `gamma`
+
+So the optimization becomes:
+
+> Improve predictions **while keeping the tree sufficiently simple**.
+
+---
+
+# 29. L1 regularization
+
+XGBoost can also use L1 regularization.
+
+The general regularization can include:
+
+$$
+\Omega(f)
+=
+\gamma T
++
+\lambda\frac12\sum_jw_j^2
++
+\alpha\sum_j|w_j|
+$$
+
+where:
+
+$$
+\alpha=\text{L1 regularization}
+$$
+
+and:
+
+$$
+\lambda=\text{L2 regularization}
+$$
+
+Conceptually:
+
+```text
+L1
+ ↓
+encourages sparsity
+
+L2
+ ↓
+shrinks weights
+```
+
+The exact optimal leaf-weight calculation becomes slightly different when L1 is included because the absolute-value term changes the optimization.
+
+---
+
+# 30. Why `min_child_weight` matters mathematically
+
+Remember:
+
+$$
+H_j=\sum_{i\in I_j}h_i
+$$
+
+`min_child_weight` places a constraint on the amount of Hessian information that a child node must have before a split is accepted.
+
+Conceptually:
+
+```text
+Small min_child_weight
+       ↓
+Small leaves allowed
+       ↓
+More complex trees
+```
+
+versus:
+
+```text
+Large min_child_weight
+       ↓
+Tiny/specialized leaves discouraged
+       ↓
+More conservative trees
+```
+
+For squared-error regression where \(h_i=1\), the sum of Hessians is closely related to the number of observations in the leaf.
+
+For logistic classification, the Hessians depend on the predicted probabilities.
+
+---
+
+# 31. Why subsampling works
+
+XGBoost can use only a fraction of observations for each boosting round.
+
+Suppose:
+
+$$
+subsample=0.8
+$$
+
+Then approximately 80% of observations are used for that boosting round.
+
+Similarly, feature subsampling can be used:
+
+$$
+colsample\_bytree=0.8
+$$
+
+This introduces randomness and can help reduce overfitting.
+
+Conceptually:
+
+```text
+All training samples
+       ↓
+Random subset
+       ↓
+Build tree
+```
+
+rather than always using the entire dataset for every tree.
+
+---
+
+# 32. Why learning rate works
+
+Suppose a new tree predicts:
+
+$$
+f_t(x)=10
+$$
+
+If:
+
+$$
+\eta=1
+$$
+
+then:
+
+$$
+\hat y_{new}=\hat y_{old}+10
+$$
+
+If:
+
+$$
+\eta=0.1
+$$
+
+then:
+
+$$
+\hat y_{new}=\hat y_{old}+1
+$$
+
+So:
+
+$$
+\boxed{
+\eta\downarrow
+\Rightarrow
+\text{smaller updates}
+}
+$$
+
+Usually, smaller learning rates require more boosting rounds.
+
+---
+
+# 33. Why XGBoost can overfit
+
+Suppose:
+
+```text
+max_depth ↑
+n_estimators ↑
+learning_rate ↑
+gamma ↓
+min_child_weight ↓
+```
+
+The model becomes capable of making increasingly detailed corrections.
+
+Eventually:
+
+```text
+Training error
+      ↓
+very low
+
+Validation error
+      ↑
+may start increasing
+```
+
+That is overfitting.
+
+XGBoost therefore gives you several ways to control complexity.
+
+---
+
+# 34. The role of each major parameter mathematically
+
+| Parameter          | Mathematical/conceptual role             |
+| ------------------ | ---------------------------------------- |
+| `learning_rate`    | Scales contribution of each tree         |
+| `n_estimators`     | Number of boosting rounds                |
+| `max_depth`        | Controls tree depth                      |
+| `gamma`            | Penalizes additional leaves/splits       |
+| `reg_lambda`       | L2 penalty on leaf weights               |
+| `reg_alpha`        | L1 penalty on leaf weights               |
+| `min_child_weight` | Minimum Hessian-based child requirement  |
+| `subsample`        | Fraction of rows used per boosting round |
+| `colsample_bytree` | Fraction of features used per tree       |
+
+---
+
+# 35. The deepest intuition
+
+You can understand XGBoost mathematically through four quantities:
+
+### 1. Loss
+
+$$
+L
+$$
+
+Answers:
+
+> How wrong is the current model?
+
+### 2. Gradient
+
+$$
+g
+$$
+
+Answers:
+
+> In which direction should the prediction move?
+
+### 3. Hessian
+
+$$
+h
+$$
+
+Answers:
+
+> What is the curvature/second-order behavior of the loss?
+
+### 4. Regularization
+
+$$
+\Omega
+$$
+
+Answers:
+
+> How complex should the tree be allowed to become?
+
+Therefore:
+
+$$
+\boxed{
+\text{XGBoost}
+=
+\text{Loss minimization}
++
+\text{Gradient}
++
+\text{Hessian}
++
+\text{Tree optimization}
++
+\text{Regularization}
+}
+$$
+
+---
+
+# 36. The entire mathematics in one chain
+
+This is the chain I'd recommend memorizing:
+
+```text
+Current Model
+     ↓
+ŷᵢ
+     ↓
+Calculate Loss
+     ↓
+Calculate Gradient
+gᵢ = ∂L/∂ŷᵢ
+     ↓
+Calculate Hessian
+hᵢ = ∂²L/∂ŷᵢ²
+     ↓
+Group samples into candidate leaves
+     ↓
+Gⱼ = Σgᵢ
+Hⱼ = Σhᵢ
+     ↓
+Optimal Leaf Weight
+wⱼ* = -Gⱼ/(Hⱼ + λ)
+     ↓
+Evaluate Candidate Splits
+     ↓
+Gain =
+½[G_L²/(H_L+λ)
+ + G_R²/(H_R+λ)
+ - G²/(H+λ)] - γ
+     ↓
+Choose useful splits
+     ↓
+Build Tree
+     ↓
+Update Prediction
+ŷᵢ ← ŷᵢ + ηfₜ(xᵢ)
+     ↓
+Repeat
+```
+
+---
+
+# 37. The five formulas you absolutely need to know
+
+For your ML notes, these are the core equations:
+
+### ① Model
+
+$$
+\boxed{
+\hat y_i=\sum_{k=1}^{K}f_k(x_i)
+}
+$$
+
+### ② Gradient
+
+$$
+\boxed{
+g_i=
+\frac{\partial l(y_i,\hat y_i)}
+{\partial\hat y_i}
+}
+$$
+
+### ③ Hessian
+
+$$
+\boxed{
+h_i=
+\frac{\partial^2l(y_i,\hat y_i)}
+{\partial\hat y_i^2}
+}
+$$
+
+### ④ Optimal leaf weight
+
+$$
+\boxed{
+w_j^*=-\frac{G_j}{H_j+\lambda}
+}
+$$
+
+### ⑤ Split gain
+
+$$
+\boxed{
+Gain=
+\frac12
+\left[
+\frac{G_L^2}{H_L+\lambda}
++
+\frac{G_R^2}{H_R+\lambda}
+-
+\frac{G^2}{H+\lambda}
+\right]
+-\gamma
+}
+$$
+
+where:
+
+$$
+G_j=\sum_{i\in I_j}g_i
+$$
+
+and:
+
+$$
+H_j=\sum_{i\in I_j}h_i
+$$
+
+---
+
+## Final mental picture
+
+The mathematics of XGBoost is essentially answering **three questions repeatedly**:
+
+**1. How should the model change?**
+
+$$
+\rightarrow g_i,\ h_i
+$$
+
+**2. What should each new leaf predict?**
+
+$$
+\rightarrow
+w_j^*=-\frac{G_j}{H_j+\lambda}
+$$
+
+**3. Is a particular split worth making?**
+
+$$
+\rightarrow \text{Split Gain}
+$$
+
+Then:
+
+$$
+\boxed{
+\text{Find gradients/Hessians}
+\rightarrow
+\text{build optimal tree}
+\rightarrow
+\text{add small part of tree}
+\rightarrow
+\text{repeat}
+}
+$$
+
+That is the mathematical engine behind XGBoost.
