@@ -1021,3 +1021,499 @@ So:
 > **XGBoost is not a completely different algorithm from Gradient Boosting. It is an optimized and regularized gradient-boosting framework.**
 
 ---
+
+# 24. Important XGBoost Regression hyperparameters
+
+When implementing XGBoost, these are the parameters you should understand.
+
+---
+
+## 24.1 `n_estimators`
+
+Number of boosting rounds/trees.
+
+```python
+n_estimators=100
+```
+
+means approximately:
+
+```text
+Tree 1
+Tree 2
+...
+Tree 100
+```
+
+Increasing it can improve learning, but too many trees can contribute to overfitting if not controlled.
+
+---
+
+# 25. `learning_rate`
+
+Controls how strongly each tree contributes.
+
+```python
+learning_rate=0.1
+```
+
+Small:
+
+```text
+0.01
+0.05
+0.1
+```
+
+Large:
+
+```text
+0.2
+0.3
+```
+
+Usually:
+
+```text
+small learning rate
++
+more trees
+```
+
+is a useful combination to explore.
+
+---
+
+# 26. `max_depth`
+
+Controls the maximum depth of each tree.
+
+Example:
+
+```python
+max_depth=3
+```
+
+means trees can grow up to depth 3.
+
+### Small depth
+
+```text
+Shallow trees
+↓
+Simpler model
+↓
+Less overfitting
+```
+
+### Large depth
+
+```text
+Complex trees
+↓
+More interactions
+↓
+Greater overfitting risk
+```
+
+---
+
+# 27. `min_child_weight`
+
+Controls the minimum amount of Hessian/instance weight required in a child.
+
+Conceptually:
+
+> How much evidence should be required before creating another child node?
+
+Increasing it generally makes the tree more conservative.
+
+---
+
+# 28. `gamma`
+
+Also called the minimum loss reduction.
+
+It controls whether a split should happen.
+
+Conceptually:
+
+```text
+Potential split
+      ↓
+Does it improve objective enough?
+      ↓
+YES → split
+NO  → don't split
+```
+
+Higher `gamma`:
+
+```text
+More conservative trees
+```
+
+---
+
+# 29. `subsample`
+
+Controls the fraction of training rows used for each boosting iteration.
+
+Example:
+
+```python
+subsample=0.8
+```
+
+means roughly:
+
+```text
+80% of training rows
+```
+
+are sampled for each tree.
+
+This introduces randomness and can reduce overfitting.
+
+---
+
+# 30. `colsample_bytree`
+
+Controls how many features are randomly sampled for each tree.
+
+Example:
+
+```python
+colsample_bytree=0.8
+```
+
+means approximately 80% of features can be considered for a tree.
+
+This is similar in spirit to feature sampling in Random Forest.
+
+---
+
+# 31. `reg_alpha`
+
+L1 regularization.
+
+$$
+\alpha\sum |w_j|
+$$
+
+It can encourage some leaf weights toward zero.
+
+Higher values make the model more regularized.
+
+---
+
+# 32. `reg_lambda`
+
+L2 regularization.
+
+$$
+\lambda\sum w_j^2
+$$
+
+It penalizes large leaf weights.
+
+Higher `reg_lambda` generally makes the model more conservative.
+
+---
+
+# 33. `objective`
+
+For regression, XGBoost provides different objective functions.
+
+A common one is:
+
+```python
+objective="reg:squarederror"
+```
+
+This corresponds to squared-error regression.
+
+Other regression-related objectives include options designed for different target distributions or error behavior.
+
+The objective is important because it determines what the model is actually optimizing.
+
+---
+
+# 34. `eval_metric`
+
+This determines how model performance is evaluated.
+
+Common regression metrics include:
+
+### RMSE
+
+$$
+RMSE=
+\sqrt{
+\frac{1}{n}
+\sum_{i=1}^{n}
+(y_i-\hat y_i)^2
+}
+$$
+
+### MAE
+
+$$
+MAE=
+\frac{1}{n}
+\sum_{i=1}^{n}
+|y_i-\hat y_i|
+$$
+
+### \(R^2\)
+
+$$
+R^2=
+1-
+\frac{
+\sum(y_i-\hat y_i)^2
+}{
+\sum(y_i-\bar y)^2
+}
+$$
+
+---
+
+# 35. Early stopping
+
+One of the most useful features of XGBoost.
+
+Suppose you train:
+
+```text
+1000 trees
+```
+
+But validation performance stops improving after:
+
+```text
+250 trees
+```
+
+Continuing to train may be unnecessary.
+
+With early stopping:
+
+```text
+Tree 1      validation improves
+Tree 2      improves
+...
+Tree 250    improves
+Tree 251    no improvement
+...
+Tree N      no improvement
+```
+
+The algorithm can stop when the evaluation metric has failed to improve for a specified number of rounds.
+
+Conceptually:
+
+```text
+Training performance
+       ↓
+keeps improving
+
+Validation performance
+       ↓
+improves
+       ↓
+reaches best point
+       ↓
+starts worsening
+       ↓
+early stopping
+```
+
+This helps control overfitting and unnecessary computation.
+
+---
+
+# 36. Why XGBoost can overfit
+
+XGBoost is powerful enough to model very complicated relationships.
+
+But that power can cause overfitting.
+
+For example:
+
+```text
+Training error → very low
+Validation error → high
+```
+
+Possible causes:
+
+* `max_depth` too high
+* `n_estimators` too high
+* `learning_rate`/tree count combination poorly chosen
+* insufficient regularization
+* insufficient data
+* noisy features
+* leakage
+* weak validation strategy
+
+---
+
+# 37. How to control overfitting
+
+Important parameters include:
+
+```text
+max_depth ↓
+min_child_weight ↑
+gamma ↑
+subsample ↓
+colsample_bytree ↓
+reg_alpha ↑
+reg_lambda ↑
+```
+
+And:
+
+```text
+learning_rate ↓
+n_estimators ↑
++ early stopping
+```
+
+can also provide a more gradual fitting process.
+
+But these should not be blindly changed. Validation should determine whether the changes actually help.
+
+---
+
+# 38. XGBoost handles nonlinear relationships
+
+Suppose house price behaves like:
+
+```text
+Small area → low price
+Medium area → moderate price
+Large area → high price
+```
+
+But the relationship isn't perfectly linear.
+
+Linear regression assumes:
+
+$$
+Price=\beta_0+\beta_1Area
+$$
+
+XGBoost doesn't require this form.
+
+Trees can learn rules such as:
+
+```text
+IF area < 1000
+    prediction = ...
+
+ELSE IF area < 2000
+    prediction = ...
+
+ELSE
+    prediction = ...
+```
+
+Multiple trees allow these simple rules to combine into a sophisticated nonlinear function.
+
+---
+
+# 39. Feature interactions
+
+Another major strength is automatic learning of interactions.
+
+Suppose:
+
+```text
+House price depends on:
+
+Area
+Location
+Bedrooms
+Age
+```
+
+Maybe:
+
+> Area matters differently depending on location.
+
+A tree can naturally learn:
+
+```text
+IF location = Kathmandu
+    AND area > 1500
+        ...
+```
+
+You don't necessarily have to manually create an interaction feature such as:
+
+```text
+area × location
+```
+
+The tree structure can model such interactions.
+
+---
+
+# 40. Missing values
+
+XGBoost can handle missing feature values in its tree-building process.
+
+For example:
+
+```text
+Area    Bedrooms    Age
+1000       2         5
+1500       3        NaN
+2000       4         2
+```
+
+XGBoost can learn how missing values should be routed during tree construction.
+
+This doesn't mean:
+
+> "You never need to think about missing data."
+
+Data quality and missingness should still be investigated carefully.
+
+---
+
+# 41. Feature scaling
+
+Unlike many algorithms, tree-based XGBoost regression generally **does not require feature scaling**.
+
+For example:
+
+```text
+Age      → 5
+Income   → 100000
+Area     → 1500
+```
+
+You generally don't need:
+
+```python
+StandardScaler()
+```
+
+just because the features have different scales.
+
+Why?
+
+Because trees make decisions based on thresholds:
+
+```text
+Income < 50000
+Area < 1500
+Age < 10
+```
+
+rather than relying on distance or coefficient magnitude in the same way as algorithms such as KNN or linear models.
+
+---
