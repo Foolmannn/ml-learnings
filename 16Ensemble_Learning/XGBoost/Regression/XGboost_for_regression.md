@@ -521,3 +521,503 @@ Magnitude of leaf weights
 ```
 
 ---
+
+# 13. Why regularization matters
+
+Imagine two trees.
+
+### Tree A
+
+```text
+3 leaves
+```
+
+### Tree B
+
+```text
+50 leaves
+```
+
+Tree B might fit the training data better.
+
+But it may generalize poorly.
+
+XGBoost asks:
+
+> Is the improvement in prediction error worth the additional complexity?
+
+This is the fundamental idea behind its regularization.
+
+---
+
+# 14. Step 6 — Find the best split
+
+XGBoost evaluates potential splits using a **gain** calculation.
+
+For a node:
+
+$$
+Gain =
+\frac{1}{2}
+\left[
+\frac{G_L^2}{H_L+\lambda}
++
+\frac{G_R^2}{H_R+\lambda}
+-
+\frac{G^2}{H+\lambda}
+\right]
+-\gamma
+$$
+
+where:
+
+$$
+G = \sum_i g_i
+$$
+
+and
+
+$$
+H = \sum_i h_i
+$$
+
+for the corresponding node.
+
+The split is useful when it produces sufficient improvement.
+
+---
+
+# 15. Understanding split gain intuitively
+
+Suppose:
+
+```text
+Parent
+  |
+  +------ Left child
+  |
+  +------ Right child
+```
+
+XGBoost asks:
+
+> Does separating these observations into two groups improve the objective enough?
+
+If yes:
+
+```text
+Split accepted
+```
+
+If not:
+
+```text
+Split rejected
+```
+
+The parameter `gamma` makes this stricter.
+
+Higher `gamma` means:
+
+> Only make a split if it provides enough improvement.
+
+---
+
+# 16. Step 7 — Calculate leaf weights
+
+After constructing the tree structure, XGBoost determines the optimal value for each leaf.
+
+The optimal leaf weight is:
+
+$$
+w_j^*
+=
+-\frac{G_j}{H_j+\lambda}
+$$
+
+This is a very important XGBoost equation.
+
+For squared-error regression:
+
+$$
+h_i=1
+$$
+
+so:
+
+$$
+H_j=n_j
+$$
+
+where \(n_j\) is the number of samples in that leaf.
+
+Thus the leaf weight becomes approximately:
+
+$$
+w_j^*
+=
+-\frac{G_j}{n_j+\lambda}
+$$
+
+---
+
+# 17. What does a leaf weight mean?
+
+Suppose a leaf contains observations for which the current model is systematically predicting too high.
+
+Then:
+
+$$
+G_j > 0
+$$
+
+Therefore:
+
+$$
+w_j^* < 0
+$$
+
+The tree contributes a negative correction.
+
+Conversely:
+
+```text
+Model predicting too low
+        ↓
+Positive correction
+```
+
+So a tree isn't necessarily predicting the final target directly.
+
+Instead, it is providing a **correction to the current model**.
+
+---
+
+# 18. Step 8 — Learning rate
+
+After calculating the new tree, XGBoost does not necessarily apply the entire tree contribution.
+
+It uses a learning rate:
+
+$$
+\hat y_i^{(t)}
+=
+\hat y_i^{(t-1)}
++
+\eta f_t(x_i)
+$$
+
+where:
+
+* \(\eta\) = learning rate
+* \(f_t(x_i)\) = new tree's prediction
+
+Suppose:
+
+```text
+Current prediction = 100
+Tree correction = 20
+```
+
+If:
+
+$$
+\eta=0.1
+$$
+
+then:
+
+$$
+100 + 0.1(20)=102
+$$
+
+Instead of immediately moving from 100 to 120, we move to 102.
+
+---
+
+# 19. Why use a learning rate?
+
+A smaller learning rate generally means:
+
+```text
+Small corrections
++
+More trees
+```
+
+A larger learning rate means:
+
+```text
+Large corrections
++
+Fewer trees
+```
+
+Typical relationship:
+
+```text
+Learning rate ↓
+        ↓
+Number of trees ↑
+```
+
+and:
+
+```text
+Learning rate ↑
+        ↓
+Number of trees ↓
+```
+
+The two parameters therefore interact strongly:
+
+* `learning_rate`
+* `n_estimators`
+
+---
+
+# 20. Complete boosting process
+
+Now we can combine everything.
+
+### Iteration 0
+
+Start with an initial prediction.
+
+```text
+Prediction
+    ↓
+Calculate loss
+```
+
+### Iteration 1
+
+```text
+Calculate gradients
+       ↓
+Calculate Hessians
+       ↓
+Find useful splits
+       ↓
+Build Tree 1
+       ↓
+Calculate leaf weights
+       ↓
+Regularize
+       ↓
+Apply learning rate
+       ↓
+Update predictions
+```
+
+### Iteration 2
+
+Use the updated predictions:
+
+```text
+New gradients
+       ↓
+New Hessians
+       ↓
+Tree 2
+       ↓
+Update predictions
+```
+
+And so on.
+
+```text
+Tree 1
+  ↓
+Tree 2
+  ↓
+Tree 3
+  ↓
+Tree 4
+  ↓
+...
+  ↓
+Tree N
+```
+
+The final prediction is approximately:
+
+$$
+\hat y
+=
+f_0(x)
++
+\eta f_1(x)
++
+\eta f_2(x)
++\cdots+
+\eta f_T(x)
+$$
+
+---
+
+# 21. Simple numerical intuition
+
+Suppose the actual value is:
+
+$$
+y=100
+$$
+
+Initial prediction:
+
+$$
+\hat y_0=70
+$$
+
+The model is underpredicting.
+
+Tree 1 gives:
+
+$$
+f_1(x)=40
+$$
+
+With:
+
+$$
+\eta=0.1
+$$
+
+we get:
+
+$$
+\hat y_1
+=
+70+0.1(40)
+$$
+
+$$
+=74
+$$
+
+Still not perfect.
+
+Tree 2:
+
+$$
+f_2(x)=30
+$$
+
+Then:
+
+$$
+\hat y_2
+=
+74+0.1(30)
+$$
+
+$$
+=77
+$$
+
+Tree 3:
+
+$$
+f_3(x)=25
+$$
+
+$$
+\hat y_3=79.5
+$$
+
+And so on.
+
+The model gradually approaches the target.
+
+```text
+70
+ ↓
+74
+ ↓
+77
+ ↓
+79.5
+ ↓
+...
+ ↓
+~100
+```
+
+This is the **additive nature of boosting**.
+
+---
+
+# 22. XGBoost vs Random Forest for Regression
+
+This is an important distinction.
+
+| Random Forest                             | XGBoost                                         |
+| ----------------------------------------- | ----------------------------------------------- |
+| Bagging                                   | Boosting                                        |
+| Trees usually trained independently       | Trees trained sequentially                      |
+| Each tree tries to solve original problem | Each tree corrects previous model               |
+| Reduces variance                          | Reduces bias and variance                       |
+| Random samples/features                   | Uses boosting + regularization/subsampling      |
+| Trees can be deep                         | Usually shallow/moderate trees                  |
+| Parallel tree construction is natural     | Sequential boosting iterations                  |
+| Usually robust with little tuning         | Often requires more tuning                      |
+| Less sensitive to hyperparameters         | Hyperparameters can strongly affect performance |
+
+The fundamental difference:
+
+### Random Forest
+
+```text
+Data
+ ├── Tree 1
+ ├── Tree 2
+ ├── Tree 3
+ ├── Tree 4
+ └── Tree 5
+      ↓
+Average predictions
+```
+
+### XGBoost
+
+```text
+Data
+ ↓
+Tree 1
+ ↓
+Errors
+ ↓
+Tree 2
+ ↓
+Remaining errors
+ ↓
+Tree 3
+ ↓
+Remaining errors
+ ↓
+...
+```
+
+---
+
+# 23. XGBoost vs ordinary Gradient Boosting
+
+XGBoost is based on gradient boosting but adds several improvements.
+
+| Gradient Boosting                 | XGBoost                       |
+| --------------------------------- | ----------------------------- |
+| Gradient-based                    | Gradient + Hessian            |
+| Less regularization               | Strong regularization         |
+| Usually slower                    | Highly optimized              |
+| Fewer advanced controls           | Many regularization controls  |
+| Basic implementation              | Optimized implementation      |
+| Less efficient for large datasets | Designed for efficiency       |
+| Basic tree construction           | Advanced tree construction    |
+| Limited missing-value handling    | Native missing-value handling |
+
+So:
+
+> **XGBoost is not a completely different algorithm from Gradient Boosting. It is an optimized and regularized gradient-boosting framework.**
+
+---
