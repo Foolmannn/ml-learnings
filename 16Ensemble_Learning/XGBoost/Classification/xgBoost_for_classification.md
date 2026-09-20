@@ -1000,3 +1000,549 @@ colsample_bytree
 give XGBoost considerable control over model complexity.
 
 ---
+
+# 29. Important XGBoost Classification Parameters
+
+A useful classification parameter group is:
+
+```python
+XGBClassifier(
+    n_estimators=200,
+    learning_rate=0.05,
+    max_depth=3,
+    min_child_weight=1,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    gamma=0,
+    reg_alpha=0,
+    reg_lambda=1
+)
+```
+
+These parameters control different aspects of the model.
+
+| Parameter          | Purpose                      |
+| ------------------ | ---------------------------- |
+| `n_estimators`     | Number of boosting rounds    |
+| `learning_rate`    | Contribution of each tree    |
+| `max_depth`        | Maximum tree depth           |
+| `min_child_weight` | Minimum child-node weight    |
+| `subsample`        | Fraction of training samples |
+| `colsample_bytree` | Fraction of features         |
+| `gamma`            | Minimum split gain           |
+| `reg_alpha`        | L1 regularization            |
+| `reg_lambda`       | L2 regularization            |
+
+---
+
+# 30. XGBoost Objectives for Classification
+
+## Binary classification
+
+```python
+objective="binary:logistic"
+```
+
+Outputs probabilities.
+
+Example:
+
+```text
+0.12
+0.87
+0.43
+0.91
+```
+
+---
+
+## Binary classification with raw margins
+
+There is also:
+
+```python
+objective="binary:logitraw"
+```
+
+This produces raw scores rather than probabilities.
+
+---
+
+## Multiclass classification
+
+Two commonly encountered objectives are:
+
+```python
+objective="multi:softprob"
+```
+
+and
+
+```python
+objective="multi:softmax"
+```
+
+### `multi:softprob`
+
+Returns probabilities for every class.
+
+Example:
+
+```text
+[
+ [0.1, 0.7, 0.2],
+ [0.8, 0.1, 0.1]
+]
+```
+
+### `multi:softmax`
+
+Returns the predicted class directly:
+
+```text
+1
+0
+```
+
+For analysis, `softprob` is often useful because you retain the probability information.
+
+---
+
+# 31. XGBoost vs Random Forest
+
+This distinction is important.
+
+### Random Forest
+
+Trees are generally built independently:
+
+```text
+Tree 1 ─┐
+Tree 2 ─┤
+Tree 3 ─┤──→ Voting
+Tree 4 ─┤
+Tree 5 ─┘
+```
+
+### XGBoost
+
+Trees are built sequentially:
+
+```text
+Tree 1
+  ↓
+Tree 2
+  ↓
+Tree 3
+  ↓
+Tree 4
+  ↓
+Final prediction
+```
+
+### Core difference
+
+| Random Forest                   | XGBoost                                                              |
+| ------------------------------- | -------------------------------------------------------------------- |
+| Bagging                         | Boosting                                                             |
+| Trees largely independent       | Trees sequential                                                     |
+| Focuses on averaging            | Focuses on correcting errors                                         |
+| Strong out-of-box model         | Strong but needs tuning                                              |
+| Usually easier to tune          | More hyperparameters                                                 |
+| Naturally parallel across trees | Sequential boosting dependency, but many operations are parallelized |
+
+---
+
+# 32. XGBoost vs AdaBoost
+
+AdaBoost generally focuses on **reweighting incorrectly classified observations**.
+
+XGBoost instead uses gradients and Hessians from the loss function.
+
+Conceptually:
+
+```text
+AdaBoost
+    ↓
+Increase weight of misclassified samples
+```
+
+while:
+
+```text
+XGBoost
+    ↓
+Calculate gradients + Hessians
+    ↓
+Build tree to reduce objective
+```
+
+---
+
+# 33. XGBoost vs Gradient Boosting
+
+XGBoost is based on gradient boosting but adds several important improvements.
+
+| Gradient Boosting                          | XGBoost                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------- |
+| Gradient-based                             | Gradient + second-order information                                 |
+| Regularization available                   | Strong regularization                                               |
+| Can be slower                              | Highly optimized                                                    |
+| Basic implementation                       | Optimized implementation                                            |
+| Less extensive engineering                 | Parallelization, efficient algorithms, missing-value handling, etc. |
+| Early stopping depending on implementation | Strong early-stopping workflow                                      |
+
+So:
+
+> **XGBoost is not a completely different boosting concept; it is a highly optimized and regularized gradient-boosted tree framework.**
+
+---
+
+# 34. Handling Missing Values
+
+One useful property of XGBoost is its ability to handle missing values.
+
+Suppose:
+
+```text
+Age = 25
+Income = NaN
+Tenure = 3
+```
+
+XGBoost can learn a default direction for missing values during tree construction.
+
+This means you don't necessarily need to manually impute every missing value for XGBoost in the same way you would for algorithms that require complete numeric input.
+
+However, preprocessing can still be appropriate depending on the dataset and pipeline.
+
+---
+
+# 35. Feature Scaling
+
+One advantage of tree-based algorithms is that they generally don't require feature scaling.
+
+For example:
+
+```text
+Age      = 25
+Income   = 500000
+Distance = 3.4
+```
+
+You generally don't need:
+
+```python
+StandardScaler()
+```
+
+just because the scales differ.
+
+This is different from models such as:
+
+* Logistic Regression
+* SVM
+* KNN
+* Neural Networks
+
+where scaling can be much more important.
+
+---
+
+# 36. Categorical Features
+
+XGBoost historically worked primarily with numerical features, so categorical variables commonly required encoding.
+
+For example:
+
+```text
+Gender
+Male
+Female
+```
+
+could be encoded.
+
+Depending on the XGBoost version and API, native categorical feature support is also available when configured appropriately.
+
+For a beginner pipeline, you should still understand:
+
+```text
+categorical data
+      ↓
+encoding / categorical handling
+      ↓
+XGBoost
+```
+
+---
+
+# 37. Evaluation Metrics
+
+For classification, you should not rely only on accuracy.
+
+Important metrics include:
+
+### Accuracy
+
+$$
+Accuracy =
+\frac{TP+TN}{TP+TN+FP+FN}
+$$
+
+Useful when classes are reasonably balanced and error costs are similar.
+
+---
+
+### Precision
+
+$$
+Precision=
+\frac{TP}{TP+FP}
+$$
+
+Question:
+
+> Of the samples predicted positive, how many were actually positive?
+
+---
+
+### Recall
+
+$$
+Recall=
+\frac{TP}{TP+FN}
+$$
+
+Question:
+
+> Of all actual positive samples, how many did we detect?
+
+---
+
+### F1 Score
+
+$$
+F1 =
+2\frac{Precision\times Recall}
+{Precision+Recall}
+$$
+
+Balances precision and recall.
+
+---
+
+### ROC-AUC
+
+Measures ranking ability across classification thresholds.
+
+---
+
+### Log Loss
+
+Particularly relevant for probabilistic predictions:
+
+$$
+-\frac{1}{N}
+\sum_i
+[y_i\log(p_i)+(1-y_i)\log(1-p_i)]
+$$
+
+---
+
+# 38. Confusion Matrix
+
+For binary classification:
+
+```text
+                 Actual
+               0       1
+Predicted 0   TN      FN
+Predicted 1   FP      TP
+```
+
+Example:
+
+```text
+                Actual
+              No     Yes
+Pred No       90      10
+Pred Yes       5      95
+```
+
+Then:
+
+```text
+TN = 90
+FN = 10
+FP = 5
+TP = 95
+```
+
+From this you can calculate:
+
+* Accuracy
+* Precision
+* Recall
+* F1
+* Specificity
+
+---
+
+# 39. Probability Threshold
+
+By default, binary classification often uses:
+
+```text
+p >= 0.5 → class 1
+p < 0.5  → class 0
+```
+
+But 0.5 is not always the best threshold for a particular application.
+
+For example:
+
+```text
+Probability = 0.42
+```
+
+could be classified as:
+
+```text
+0
+```
+
+using threshold 0.5.
+
+But with:
+
+```text
+threshold = 0.30
+```
+
+it becomes:
+
+```text
+1
+```
+
+Changing the threshold changes the precision/recall trade-off.
+
+This is especially important for imbalanced classification.
+
+---
+
+# 40. Class Imbalance
+
+Suppose:
+
+```text
+Normal = 99,000
+Fraud  = 1,000
+```
+
+A model predicting:
+
+```text
+Normal
+```
+
+for every sample gets:
+
+$$
+99\%
+$$
+
+accuracy.
+
+But it detects:
+
+```text
+0% of fraud
+```
+
+So accuracy is misleading.
+
+XGBoost provides:
+
+```python
+scale_pos_weight
+```
+
+which can be useful for binary class imbalance.
+
+A common starting heuristic is:
+
+$$
+scale\_pos\_weight
+=
+\frac{\text{number of negative samples}}
+{\text{number of positive samples}}
+$$
+
+But it should be treated as a starting point rather than a universally optimal value.
+
+---
+
+# 41. Early Stopping
+
+One of the very useful XGBoost features is **early stopping**.
+
+Suppose you specify:
+
+```python
+n_estimators=1000
+```
+
+You don't necessarily want all 1000 trees.
+
+You can monitor validation performance.
+
+For example:
+
+```text
+Tree 1      validation loss = 0.60
+Tree 50     validation loss = 0.42
+Tree 100    validation loss = 0.35
+Tree 150    validation loss = 0.32
+Tree 200    validation loss = 0.32
+Tree 250    validation loss = 0.33
+```
+
+If performance stops improving for a specified number of rounds, training can stop.
+
+For example:
+
+```python
+early_stopping_rounds=50
+```
+
+This helps prevent unnecessary boosting rounds and can reduce overfitting.
+
+---
+
+# 42. Feature Importance
+
+XGBoost can provide feature importance.
+
+Suppose:
+
+```text
+Feature             Importance
+-----------------------------
+Income                 0.35
+Age                    0.25
+Complaints             0.22
+Tenure                 0.12
+Gender                 0.06
+```
+
+This tells us which features contributed strongly to the model according to the selected importance measure.
+
+But remember:
+
+> Feature importance does not automatically mean causation.
+
+A feature being important to the model does not prove that changing that feature causes the prediction to change.
+
+---
