@@ -2029,3 +2029,622 @@ K-Means
 The actual iterative assignment/update process remains K-Means.
 
 ---
+
+# 56. Mini-Batch K-Means
+
+For very large datasets, standard K-Means can become expensive.
+
+Instead of processing all data points in each iteration, **Mini-Batch K-Means** processes smaller batches.
+
+Conceptually:
+
+### Standard K-Means
+
+```text
+10 million samples
+      ↓
+Process all
+      ↓
+Update centroid
+```
+
+### Mini-Batch K-Means
+
+```text
+10 million samples
+      ↓
+Batch 1
+      ↓
+Update
+
+Batch 2
+      ↓
+Update
+
+Batch 3
+      ↓
+Update
+```
+
+This can significantly improve computational efficiency for large datasets, at the cost of potentially different/less exact optimization.
+
+In sklearn:
+
+```python
+from sklearn.cluster import MiniBatchKMeans
+
+model = MiniBatchKMeans(
+    n_clusters=5,
+    batch_size=100,
+    random_state=42
+)
+
+labels = model.fit_predict(X)
+```
+
+---
+
+# 57. Important K-Means Attributes in Scikit-Learn
+
+After:
+
+```python
+kmeans.fit(X)
+```
+
+you can inspect:
+
+### Cluster centers
+
+```python
+kmeans.cluster_centers_
+```
+
+### Cluster labels
+
+```python
+kmeans.labels_
+```
+
+### Inertia
+
+```python
+kmeans.inertia_
+```
+
+### Number of iterations
+
+```python
+kmeans.n_iter_
+```
+
+These are useful when analyzing the trained model.
+
+---
+
+# 58. Important K-Means Methods
+
+### `fit()`
+
+Train the clustering algorithm:
+
+```python
+kmeans.fit(X)
+```
+
+### `predict()`
+
+Assign new data to existing clusters:
+
+```python
+kmeans.predict(X_new)
+```
+
+### `fit_predict()`
+
+Fit and return cluster assignments:
+
+```python
+kmeans.fit_predict(X)
+```
+
+### `transform()`
+
+Returns distances from each sample to each cluster center:
+
+```python
+kmeans.transform(X)
+```
+
+For example:
+
+```text
+             C1      C2      C3
+Point A      1.2     5.3     8.1
+Point B      6.2     1.1     4.8
+```
+
+The smallest distance indicates the nearest centroid.
+
+---
+
+# 59. A Typical Real-World K-Means Workflow
+
+A good practical workflow is:
+
+```text
+Raw Dataset
+     ↓
+Understand Data
+     ↓
+Select Features
+     ↓
+Handle Missing Values
+     ↓
+Handle/Investigate Outliers
+     ↓
+Encode appropriate categorical variables
+     ↓
+Scale Features
+     ↓
+Try Different K
+     ↓
+Elbow Method
+     ↓
+Silhouette Score
+     ↓
+Train Final K-Means
+     ↓
+Analyze Clusters
+     ↓
+Visualize
+     ↓
+Interpret
+     ↓
+Use for New Data
+```
+
+---
+
+# 60. Complete Example
+
+Here's a clean implementation pattern:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+```
+
+Load data:
+
+```python
+df = pd.read_csv("customers.csv")
+```
+
+Select features:
+
+```python
+X = df[
+    ["Annual Income", "Spending Score"]
+]
+```
+
+Scale:
+
+```python
+scaler = StandardScaler()
+
+X_scaled = scaler.fit_transform(X)
+```
+
+Find inertia:
+
+```python
+inertia = []
+
+for k in range(1, 11):
+
+    model = KMeans(
+        n_clusters=k,
+        random_state=42,
+        n_init=10
+    )
+
+    model.fit(X_scaled)
+
+    inertia.append(model.inertia_)
+```
+
+Plot:
+
+```python
+plt.plot(
+    range(1, 11),
+    inertia,
+    marker="o"
+)
+
+plt.xlabel("K")
+plt.ylabel("Inertia")
+plt.title("Elbow Method")
+
+plt.show()
+```
+
+Suppose you decide:
+
+```python
+K = 5
+```
+
+Train:
+
+```python
+kmeans = KMeans(
+    n_clusters=5,
+    random_state=42,
+    n_init=10
+)
+
+labels = kmeans.fit_predict(X_scaled)
+```
+
+Add labels:
+
+```python
+df["Cluster"] = labels
+```
+
+Evaluate:
+
+```python
+score = silhouette_score(
+    X_scaled,
+    labels
+)
+
+print("Silhouette Score:", score)
+```
+
+Centroids:
+
+```python
+print(kmeans.cluster_centers_)
+```
+
+---
+
+# 61. Interpreting the Clusters
+
+This is where machine learning ends and **domain understanding** becomes important.
+
+Suppose you get:
+
+```text
+Cluster 0:
+Income = High
+Spending = High
+
+Cluster 1:
+Income = Low
+Spending = Low
+
+Cluster 2:
+Income = High
+Spending = Low
+
+Cluster 3:
+Income = Low
+Spending = High
+```
+
+You might interpret them as:
+
+```text
+Cluster 0 → High-value customers
+Cluster 1 → Low-engagement customers
+Cluster 2 → Potential conservative spenders
+Cluster 3 → High-spending lower-income customers
+```
+
+But these labels are **your interpretation**, not something K-Means automatically knows.
+
+K-Means only produces:
+
+```text
+Cluster 0
+Cluster 1
+Cluster 2
+Cluster 3
+```
+
+---
+
+# 62. Very Important Concept: Cluster Labels Have No Meaning
+
+Suppose model A produces:
+
+```text
+Customer A → Cluster 0
+Customer B → Cluster 1
+```
+
+Another run might produce:
+
+```text
+Customer A → Cluster 1
+Customer B → Cluster 0
+```
+
+That doesn't necessarily mean the clustering changed.
+
+The cluster numbers themselves are arbitrary.
+
+What matters is:
+
+```text
+Which points belong together?
+```
+
+not:
+
+```text
+Is this Cluster 0 or Cluster 1?
+```
+
+---
+
+# 63. Common Beginner Mistakes
+
+### Mistake 1 — Not scaling features
+
+```python
+KMeans(...)
+```
+
+directly on features with wildly different scales can produce misleading results.
+
+---
+
+### Mistake 2 — Choosing K arbitrarily
+
+Don't always do:
+
+```python
+K = 3
+```
+
+just because 3 is convenient.
+
+Use:
+
+* Elbow
+* Silhouette
+* Visualization
+* Domain knowledge
+
+---
+
+### Mistake 3 — Assuming lowest inertia is best
+
+Incorrect:
+
+```text
+K=10 has lower inertia
+therefore K=10 is best
+```
+
+No.
+
+Increasing K naturally tends to reduce inertia.
+
+---
+
+### Mistake 4 — Treating cluster numbers as meaningful
+
+```text
+Cluster 0 = bad
+Cluster 1 = good
+```
+
+K-Means doesn't know that.
+
+---
+
+### Mistake 5 — Ignoring outliers
+
+Outliers can strongly influence centroids.
+
+---
+
+### Mistake 6 — Using K-Means for every clustering problem
+
+K-Means isn't appropriate for every shape or data type.
+
+---
+
+# 64. The Most Important Intuition
+
+Imagine throwing hundreds of balls onto a floor.
+
+You want to put them into:
+
+```text
+K boxes
+```
+
+but the boxes aren't there yet.
+
+K-Means repeatedly asks:
+
+### Question 1
+
+> Which center is this ball closest to?
+
+Assign it.
+
+### Question 2
+
+> Where should the center of this group be?
+
+Calculate the mean.
+
+Then repeat:
+
+```text
+Assign
+  ↓
+Calculate mean
+  ↓
+Move centroid
+  ↓
+Assign again
+  ↓
+Calculate mean
+  ↓
+...
+```
+
+Eventually the centers stabilize.
+
+That's essentially K-Means.
+
+---
+
+# 65. K-Means Mental Model
+
+Keep this diagram in mind:
+
+```text
+                 K-Means
+                    |
+        -------------------------
+        |                       |
+    Choose K               Initialize
+                                |
+                           Centroids
+                                |
+                                ↓
+                     Assign points to
+                     nearest centroid
+                                |
+                                ↓
+                     Calculate means
+                                |
+                                ↓
+                       Move centroids
+                                |
+                                ↓
+                         Converged?
+                         /         \
+                       No           Yes
+                       |             |
+                       └───repeat    ↓
+                                  Clusters
+```
+
+---
+
+# 66. What You Should Know for ML
+
+For your ML learning path, I'd recommend mastering K-Means in this order:
+
+### Level 1 — Fundamentals
+
+Understand:
+
+* Unsupervised learning
+* Clustering
+* K
+* Centroid
+* Distance
+* Cluster assignment
+
+### Level 2 — Algorithm
+
+Understand:
+
+* Initialization
+* Assignment step
+* Update step
+* Iterations
+* Convergence
+
+### Level 3 — Mathematics
+
+Understand:
+
+* Euclidean distance
+* Squared distance
+* WCSS
+* Inertia
+* Objective function
+* Why mean minimizes squared error
+
+### Level 4 — Choosing K
+
+Understand:
+
+* Elbow Method
+* Silhouette Score
+
+### Level 5 — Practical preprocessing
+
+Understand:
+
+* Feature scaling
+* Missing values
+* Outliers
+* Numerical vs categorical features
+
+### Level 6 — Implementation
+
+Master:
+
+```python
+KMeans()
+fit()
+predict()
+fit_predict()
+cluster_centers_
+labels_
+inertia_
+n_iter_
+```
+
+### Level 7 — Advanced concepts
+
+Then learn:
+
+* K-Means++
+* `n_init`
+* Local minima
+* Mini-Batch K-Means
+* Limitations of spherical clusters
+* DBSCAN
+* Hierarchical clustering
+* Gaussian Mixture Models
+
+---
+
+## One-line summary
+
+> **K-Means is an unsupervised clustering algorithm that repeatedly assigns each point to its nearest centroid and then moves each centroid to the mean of its assigned points, with the goal of minimizing within-cluster squared distances.**
+
+The **three concepts I would focus on most** are:
+
+```text
+K-Means Algorithm
+       ↓
+Centroid + WCSS/Inertia
+       ↓
+Choosing K
+   ↙       ↘
+Elbow    Silhouette
+```
+
+These form the foundation for understanding almost everything else about K-Means.
