@@ -1076,3 +1076,956 @@ or naturally have comparable scales, additional scaling may not be necessary.
 But because K-Means is distance-based, **always check feature scales**.
 
 ---
+
+# 29. K-Means Initialization
+
+The initial centroids matter.
+
+Suppose we randomly select poor starting points.
+
+K-Means could converge to:
+
+```text
+Local optimum A
+```
+
+instead of:
+
+```text
+Better optimum B
+```
+
+This means K-Means can be sensitive to initialization.
+
+---
+
+# 30. Random Initialization
+
+One approach is:
+
+```text
+Randomly choose K data points
+as initial centroids.
+```
+
+For example:
+
+```python
+KMeans(n_clusters=3, init="random")
+```
+
+But this can sometimes produce poor clusters.
+
+---
+
+# 31. K-Means++
+
+A better initialization method is:
+
+> **K-Means++**
+
+It tries to select initial centroids that are spread out.
+
+Conceptually:
+
+```text
+Choose first centroid randomly
+          ↓
+Choose next centroid far from existing centroids
+          ↓
+Choose another centroid based on distance
+          ↓
+Continue until K centroids
+```
+
+This generally gives better initialization than naive random selection.
+
+In scikit-learn, K-Means++ is the default initialization strategy.
+
+---
+
+# 32. `n_init`
+
+Because K-Means can produce different results depending on initialization, we can run it multiple times.
+
+Example:
+
+```python
+KMeans(
+    n_clusters=3,
+    n_init=10
+)
+```
+
+This means multiple initialization attempts are performed and the solution with the best objective is selected.
+
+Conceptually:
+
+```text
+Run 1 → inertia = 500
+Run 2 → inertia = 430
+Run 3 → inertia = 450
+Run 4 → inertia = 410
+
+Choose → Run 4
+```
+
+---
+
+# 33. K-Means Hyperparameters
+
+Important parameters in scikit-learn:
+
+```python
+KMeans(
+    n_clusters=3,
+    init="k-means++",
+    n_init=10,
+    max_iter=300,
+    tol=1e-4,
+    random_state=42
+)
+```
+
+Let's understand them.
+
+---
+
+## `n_clusters`
+
+Number of clusters.
+
+```python
+n_clusters=3
+```
+
+means:
+
+```text
+Create 3 clusters.
+```
+
+This is the most important parameter.
+
+---
+
+## `init`
+
+Controls centroid initialization.
+
+Common options:
+
+```python
+init="k-means++"
+```
+
+or:
+
+```python
+init="random"
+```
+
+---
+
+## `n_init`
+
+Number of initialization attempts.
+
+More attempts can increase computational cost but reduce the chance of getting a poor solution.
+
+---
+
+## `max_iter`
+
+Maximum iterations for a single run.
+
+Example:
+
+```python
+max_iter=300
+```
+
+means K-Means can perform at most 300 iterations per initialization.
+
+---
+
+## `tol`
+
+Tolerance used to determine convergence.
+
+If centroid movement becomes sufficiently small, the algorithm stops.
+
+---
+
+## `random_state`
+
+Makes the result reproducible.
+
+```python
+random_state=42
+```
+
+---
+
+# 34. K-Means Implementation
+
+Let's implement K-Means using a simple dataset.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.cluster import KMeans
+```
+
+Create data:
+
+```python
+X = np.array([
+    [1, 2],
+    [1, 3],
+    [2, 2],
+    [8, 8],
+    [9, 8],
+    [8, 9]
+])
+```
+
+Visualize:
+
+```python
+plt.scatter(X[:, 0], X[:, 1])
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.show()
+```
+
+We can visually see two groups.
+
+---
+
+# 35. Create K-Means Model
+
+```python
+kmeans = KMeans(
+    n_clusters=2,
+    random_state=42,
+    n_init=10
+)
+```
+
+Then:
+
+```python
+kmeans.fit(X)
+```
+
+---
+
+# 36. Get Cluster Labels
+
+```python
+labels = kmeans.labels_
+
+print(labels)
+```
+
+Possible output:
+
+```text
+[1 1 1 0 0 0]
+```
+
+Remember:
+
+The numbers themselves don't have inherent meaning.
+
+For example:
+
+```text
+Cluster 0
+Cluster 1
+```
+
+could just as easily be:
+
+```text
+Cluster 1
+Cluster 0
+```
+
+The labels are categorical identifiers.
+
+---
+
+# 37. Get Centroids
+
+```python
+centroids = kmeans.cluster_centers_
+
+print(centroids)
+```
+
+Possible output:
+
+```text
+[
+    [8.33, 8.33],
+    [1.33, 2.33]
+]
+```
+
+These are the centers of the two clusters.
+
+---
+
+# 38. Visualize Clusters
+
+```python
+plt.scatter(
+    X[:, 0],
+    X[:, 1],
+    c=labels
+)
+
+plt.scatter(
+    centroids[:, 0],
+    centroids[:, 1],
+    marker="X",
+    s=200
+)
+
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+
+plt.show()
+```
+
+Conceptually:
+
+```text
+       Cluster 2
+
+         • •
+        X
+         •
+
+
+Cluster 1
+
+ • •
+  X
+ •
+```
+
+The `X` represents the centroid.
+
+---
+
+# 39. Predict Cluster for New Data
+
+This is an important practical use.
+
+Suppose we have a new point:
+
+```python
+new_point = [[2, 3]]
+```
+
+We can predict its cluster:
+
+```python
+prediction = kmeans.predict(new_point)
+
+print(prediction)
+```
+
+Output might be:
+
+```text
+[1]
+```
+
+This means the new point belongs to cluster `1`.
+
+---
+
+# 40. Understanding `fit_predict()`
+
+Instead of:
+
+```python
+kmeans.fit(X)
+
+labels = kmeans.predict(X)
+```
+
+we can write:
+
+```python
+labels = kmeans.fit_predict(X)
+```
+
+This does both:
+
+```text
+Fit the model
+     +
+Assign clusters
+```
+
+---
+
+# 41. K-Means with a Real Dataset
+
+A common demonstration dataset is the **Mall Customers dataset**.
+
+Suppose we have:
+
+```text
+Age
+Annual Income
+Spending Score
+```
+
+We might choose:
+
+```python
+X = df[
+    ["Annual Income (k$)", "Spending Score (1-100)"]
+]
+```
+
+Then scale:
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_scaled = scaler.fit_transform(X)
+```
+
+Then:
+
+```python
+kmeans = KMeans(
+    n_clusters=5,
+    random_state=42,
+    n_init=10
+)
+
+labels = kmeans.fit_predict(X_scaled)
+```
+
+Add the cluster labels:
+
+```python
+df["Cluster"] = labels
+```
+
+Now every customer has a cluster.
+
+---
+
+# 42. Finding K with Elbow Method
+
+We can test different K values.
+
+```python
+inertia = []
+
+for k in range(1, 11):
+
+    kmeans = KMeans(
+        n_clusters=k,
+        random_state=42,
+        n_init=10
+    )
+
+    kmeans.fit(X_scaled)
+
+    inertia.append(kmeans.inertia_)
+```
+
+Then:
+
+```python
+plt.plot(range(1, 11), inertia, marker="o")
+
+plt.xlabel("Number of Clusters")
+plt.ylabel("Inertia")
+plt.title("Elbow Method")
+
+plt.show()
+```
+
+You'll look for the point where the curve starts flattening.
+
+---
+
+# 43. Silhouette Score Implementation
+
+Import:
+
+```python
+from sklearn.metrics import silhouette_score
+```
+
+Then:
+
+```python
+scores = []
+
+for k in range(2, 11):
+
+    kmeans = KMeans(
+        n_clusters=k,
+        random_state=42,
+        n_init=10
+    )
+
+    labels = kmeans.fit_predict(X_scaled)
+
+    score = silhouette_score(
+        X_scaled,
+        labels
+    )
+
+    scores.append(score)
+```
+
+Plot:
+
+```python
+plt.plot(
+    range(2, 11),
+    scores,
+    marker="o"
+)
+
+plt.xlabel("Number of Clusters")
+plt.ylabel("Silhouette Score")
+
+plt.show()
+```
+
+You generally look for a higher silhouette score, while also considering whether the resulting clusters make practical sense.
+
+---
+
+# 44. Important: Don't Blindly Trust the Elbow
+
+This is a common beginner mistake.
+
+Suppose:
+
+```text
+Elbow → K=4
+Silhouette → K=3
+```
+
+You shouldn't automatically say:
+
+```text
+K = 4 because Elbow says so.
+```
+
+Instead, investigate:
+
+```text
+1. Cluster separation
+2. Cluster sizes
+3. Domain meaning
+4. Silhouette score
+5. Visualization
+6. Business/use-case requirements
+```
+
+Clustering is exploratory.
+
+There isn't always one mathematically obvious "correct" K.
+
+---
+
+# 45. What Does `inertia_` Mean?
+
+After fitting:
+
+```python
+kmeans.fit(X)
+```
+
+we can access:
+
+```python
+kmeans.inertia_
+```
+
+This represents the sum of squared distances between points and their assigned cluster centers.
+
+Conceptually:
+
+```text
+Point
+  |
+  | distance
+  ↓
+Centroid
+```
+
+All those squared distances are summed.
+
+Lower:
+
+```text
+inertia
+```
+
+means points are closer to their centroids.
+
+But remember:
+
+> Lower inertia alone does not mean better clustering because inertia generally decreases as K increases.
+
+---
+
+# 46. Advantages of K-Means
+
+### 1. Simple
+
+The algorithm is easy to understand.
+
+### 2. Fast
+
+K-Means is computationally efficient for many datasets.
+
+### 3. Scalable
+
+It can work well with relatively large datasets.
+
+### 4. Easy to implement
+
+Scikit-learn provides a simple implementation.
+
+### 5. Easy to interpret
+
+Clusters and their centroids are relatively straightforward to understand.
+
+### 6. Useful for exploratory analysis
+
+It can help discover hidden structure in unlabeled data.
+
+---
+
+# 47. Disadvantages of K-Means
+
+K-Means has several important limitations.
+
+---
+
+## 47.1 You Must Choose K
+
+The algorithm requires:
+
+```python
+n_clusters=K
+```
+
+before training.
+
+Choosing the wrong K can produce poor clustering.
+
+---
+
+## 47.2 Sensitive to Initialization
+
+Different initial centroids can produce different results.
+
+This is why:
+
+```python
+n_init
+```
+
+is important.
+
+---
+
+## 47.3 Sensitive to Outliers
+
+Consider:
+
+```text
+• • • • •
+• • • •
+•
+•
+                       X
+```
+
+An extreme point can pull the centroid away from the main group.
+
+---
+
+## 47.4 Sensitive to Feature Scaling
+
+Because K-Means uses distance, features with larger scales can dominate.
+
+---
+
+## 47.5 Assumes Roughly Spherical Clusters
+
+This is one of the biggest conceptual limitations.
+
+K-Means works well when clusters look approximately like:
+
+```text
+    •••
+  •••••
+   •••
+```
+
+But consider:
+
+```text
+   ********
+ **        **
+*            *
+ **        **
+   ********
+```
+
+K-Means may struggle because the cluster isn't spherical/convex in the way K-Means prefers.
+
+---
+
+# 48. K-Means and Non-Spherical Data
+
+Imagine two moon-shaped clusters:
+
+```text
+   █████
+ ███
+██
+
+          ███
+        █████
+```
+
+K-Means may divide the data incorrectly because it primarily uses distance to centroids.
+
+Algorithms such as:
+
+* DBSCAN
+* Spectral Clustering
+* Gaussian Mixture Models
+* Hierarchical Clustering
+
+may be more appropriate depending on the data.
+
+---
+
+# 49. K-Means and Categorical Data
+
+Standard K-Means is designed primarily for **numeric continuous features**.
+
+For example:
+
+```text
+Age
+Income
+Spending Score
+```
+
+Good candidates.
+
+But categorical variables such as:
+
+```text
+Gender = Male/Female
+City = Kathmandu/Pokhara
+Education = Bachelor/Master
+```
+
+cannot simply be fed into ordinary K-Means as raw strings.
+
+One-hot encoding can sometimes be used, but distance interpretation needs care.
+
+For mixed categorical/numerical data, algorithms such as **K-Prototypes** may be more appropriate.
+
+---
+
+# 50. K-Means vs KNN
+
+The names are similar, but they are completely different.
+
+| K-Means                    | KNN                         |
+| -------------------------- | --------------------------- |
+| Unsupervised               | Supervised                  |
+| Clustering                 | Classification/Regression   |
+| No target required         | Requires labeled data       |
+| Finds clusters             | Predicts based on neighbors |
+| `K` = number of clusters   | `K` = number of neighbors   |
+| Training creates centroids | Stores training examples    |
+
+For example:
+
+### K-Means
+
+```text
+Customer data
+     ↓
+Discover groups
+```
+
+### KNN
+
+```text
+Labeled customers
+     ↓
+New customer
+     ↓
+Find nearest customers
+     ↓
+Predict class
+```
+
+---
+
+# 51. K-Means vs Hierarchical Clustering
+
+### K-Means
+
+```text
+Choose K
+ ↓
+Create clusters
+```
+
+Hierarchical clustering builds a hierarchy:
+
+```text
+                 All Data
+                    |
+             --------------
+             |            |
+          Group A       Group B
+           /   \          /   \
+          A1   A2        B1   B2
+```
+
+Hierarchical clustering can produce a **dendrogram**.
+
+K-Means is generally more computationally efficient for large datasets, while hierarchical clustering can provide a useful hierarchy of relationships.
+
+---
+
+# 52. K-Means vs DBSCAN
+
+| K-Means                            | DBSCAN                                        |
+| ---------------------------------- | --------------------------------------------- |
+| Must specify K                     | Doesn't require number of clusters beforehand |
+| Centroid-based                     | Density-based                                 |
+| Sensitive to outliers              | Can identify noise/outliers                   |
+| Prefers roughly spherical clusters | Can find irregular shapes                     |
+| Distance-based                     | Density-based                                 |
+
+For example:
+
+```text
+K-Means:
+
+    •••
+  •••••
+    •••
+```
+
+DBSCAN can handle shapes like:
+
+```text
+████████
+        ████████
+```
+
+much more naturally.
+
+---
+
+# 53. K-Means and Outliers
+
+Consider:
+
+```text
+      • •
+    • • •
+      •
+
+                         X
+```
+
+The `X` is an outlier.
+
+Because K-Means calculates means, the outlier can shift the centroid.
+
+Potential approaches:
+
+```text
+Remove obvious data errors
+        OR
+Use robust preprocessing
+        OR
+Try DBSCAN
+        OR
+Compare different clustering algorithms
+```
+
+Don't automatically remove outliers, though. First determine whether they represent errors or meaningful rare observations.
+
+---
+
+# 54. K-Means Complexity
+
+A common complexity approximation is:
+
+$$
+O(nKdi)
+$$
+
+where:
+
+* \(n\) = number of data points
+* \(K\) = number of clusters
+* \(d\) = number of dimensions/features
+* \(i\) = number of iterations
+
+Therefore, increasing:
+
+```text
+n
+K
+d
+iterations
+```
+
+can increase computational cost.
+
+---
+
+# 55. K-Means++ vs K-Means
+
+Strictly speaking, **K-Means++ is not a completely different clustering algorithm**.
+
+It is an initialization strategy for K-Means.
+
+```text
+K-Means
+   |
+   +--- Random initialization
+   |
+   +--- K-Means++ initialization
+```
+
+The actual iterative assignment/update process remains K-Means.
+
+---
