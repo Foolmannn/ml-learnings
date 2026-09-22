@@ -489,3 +489,468 @@ This is a compromise between:
 It is often less sensitive to chaining than single linkage.
 
 ---
+
+# 14. Ward Linkage
+
+Ward linkage is particularly important.
+
+Instead of directly considering pairwise cluster distances, Ward's method chooses the merge that results in the **smallest increase in within-cluster variance** (equivalently, within-cluster sum of squares under the standard formulation).
+
+The intuition is:
+
+> Merge the two clusters that produce the smallest increase in total within-cluster variation.
+
+This tends to create relatively compact, roughly spherical clusters.
+
+In scikit-learn:
+
+```python
+AgglomerativeClustering(
+    n_clusters=3,
+    linkage="ward"
+)
+```
+
+Ward linkage requires **Euclidean distance** in scikit-learn's implementation.
+
+---
+
+# 15. Linkage Comparison
+
+| Linkage  | Main idea                     | Typical behavior                |
+| -------- | ----------------------------- | ------------------------------- |
+| Single   | Closest pair                  | Can create chains               |
+| Complete | Farthest pair                 | Compact clusters                |
+| Average  | Average pair distance         | Balanced                        |
+| Ward     | Minimize increase in variance | Compact, spherical-ish clusters |
+
+---
+
+# 16. Dendrogram
+
+The **dendrogram** is the most recognizable part of hierarchical clustering.
+
+It shows the sequence of merges.
+
+For example:
+
+```text
+Distance
+   ↑
+  10 |             ┌──────────────┐
+     |             │              │
+   8 |       ┌─────┴─────┐        │
+     |       │           │        │
+   6 |   ┌───┴───┐       │        │
+     |   │       │       │        │
+   4 | ┌─┴─┐     │       │        │
+     | │   │     │       │        │
+   2 | A   B     C       D        E
+     +──────────────────────────────→
+```
+
+The **vertical height at which two branches merge** represents the linkage distance/merge criterion used by the algorithm.
+
+---
+
+# 17. How to Choose Number of Clusters
+
+This is one of the biggest advantages of hierarchical clustering.
+
+You can inspect the dendrogram and choose where to cut it.
+
+Suppose:
+
+```text
+                ┌───────────────┐
+                │               │
+          ┌─────┴─────┐         │
+          │           │         │
+       ┌──┴──┐        │         │
+       A     B        C         D
+```
+
+If we cut here:
+
+```text
+------------------------------
+```
+
+we might get:
+
+```text
+Cluster 1 → A,B
+Cluster 2 → C
+Cluster 3 → D
+```
+
+A different cut gives a different number of clusters.
+
+---
+
+# 18. The Horizontal Cut
+
+This is an important exam/interview concept.
+
+Imagine:
+
+```text
+             ┌─────────────┐
+             │             │
+        ┌────┴────┐        │
+        │         │        │
+       ┌┴┐       ┌┴┐       D
+       A B       C E
+```
+
+Draw a horizontal line:
+
+```text
+-----------------------------
+```
+
+The number of branches that the line intersects gives the number of clusters.
+
+So:
+
+> **Number of clusters = number of dendrogram branches intersected by the horizontal cut.**
+
+---
+
+# 19. How Does the Dendrogram Decide the Merge?
+
+Let's use:
+
+$$
+X=[1,2,3,10,11,12]
+$$
+
+Initially:
+
+```text
+{1} {2} {3} {10} {11} {12}
+```
+
+Closest pairs:
+
+$$
+1,2
+$$
+
+$$
+2,3
+$$
+
+$$
+10,11
+$$
+
+$$
+11,12
+$$
+
+The algorithm starts merging the closest clusters.
+
+Eventually:
+
+```text
+{1,2,3}
+```
+
+and:
+
+```text
+{10,11,12}
+```
+
+become two large clusters.
+
+Finally, they merge into:
+
+```text
+{1,2,3,10,11,12}
+```
+
+That final merge occurs at a much larger distance.
+
+That large jump is often useful when deciding where to cut the dendrogram.
+
+---
+
+# 20. Agglomerative Clustering Algorithm — Pseudocode
+
+```text
+Start with every data point as its own cluster
+
+while more than one cluster exists:
+
+    calculate distance between clusters
+
+    find the two closest clusters
+
+    merge them
+
+    update cluster distances
+
+return hierarchy
+```
+
+The actual behavior depends heavily on the selected linkage.
+
+---
+
+# 21. Mathematical View
+
+Suppose we have clusters:
+
+$$
+C_1,C_2,\ldots,C_k
+$$
+
+At each iteration, we select:
+
+$$
+(C_i,C_j)
+=
+\arg\min_{C_a,C_b}D(C_a,C_b)
+$$
+
+where \(D\) is the chosen linkage-based cluster distance.
+
+Then:
+
+$$
+C_{new}=C_i\cup C_j
+$$
+
+We repeat until:
+
+$$
+C=\{X_1,X_2,\ldots,X_n\}
+$$
+
+becomes one cluster.
+
+---
+
+# 22. Important Difference from K-Means
+
+This is extremely important.
+
+### K-Means
+
+You normally choose:
+
+$$
+K
+$$
+
+before training.
+
+```text
+K = 3
+
+Data → K-Means → 3 clusters
+```
+
+### Hierarchical
+
+You can construct the hierarchy first:
+
+```text
+Data
+ ↓
+Hierarchy
+ ↓
+Dendrogram
+ ↓
+Choose cut
+ ↓
+Clusters
+```
+
+Therefore, hierarchical clustering gives you more flexibility to inspect different cluster resolutions.
+
+---
+
+# 23. Hierarchical vs K-Means
+
+| Feature                  | K-Means                | Hierarchical            |
+| ------------------------ | ---------------------- | ----------------------- |
+| Need K initially         | Yes                    | Not necessarily         |
+| Output                   | Cluster assignments    | Hierarchy + assignments |
+| Dendrogram               | No                     | Yes                     |
+| Scalability              | Generally better       | Generally worse         |
+| Visualization            | Limited                | Excellent               |
+| Cluster shape            | Usually centroid-based | Depends on linkage      |
+| Need repeated iterations | Yes                    | Sequential merging      |
+| Large datasets           | Usually preferable     | Can become expensive    |
+| Hierarchy information    | No                     | Yes                     |
+
+---
+
+# 24. Hierarchical Clustering in Python
+
+Using scikit-learn:
+
+```python
+from sklearn.cluster import AgglomerativeClustering
+
+model = AgglomerativeClustering(
+    n_clusters=3,
+    linkage="ward"
+)
+
+labels = model.fit_predict(X)
+
+print(labels)
+```
+
+Example output:
+
+```text
+[0 0 1 1 2 2]
+```
+
+These numbers are cluster IDs.
+
+**Important:** Cluster `0` isn't inherently "better" or "smaller" than cluster `1`. The labels are simply identifiers.
+
+---
+
+# 25. Using Different Linkages
+
+### Single
+
+```python
+model = AgglomerativeClustering(
+    n_clusters=3,
+    linkage="single"
+)
+```
+
+### Complete
+
+```python
+model = AgglomerativeClustering(
+    n_clusters=3,
+    linkage="complete"
+)
+```
+
+### Average
+
+```python
+model = AgglomerativeClustering(
+    n_clusters=3,
+    linkage="average"
+)
+```
+
+### Ward
+
+```python
+model = AgglomerativeClustering(
+    n_clusters=3,
+    linkage="ward"
+)
+```
+
+---
+
+# 26. Scaling is Important
+
+Suppose you have:
+
+```text
+Age       → 18–60
+Income    → 20,000–5,000,000
+```
+
+Distance calculations will be heavily influenced by income.
+
+Therefore, feature scaling is usually important.
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_scaled = scaler.fit_transform(X)
+```
+
+Then:
+
+```python
+model = AgglomerativeClustering(
+    n_clusters=3,
+    linkage="ward"
+)
+
+labels = model.fit_predict(X_scaled)
+```
+
+---
+
+# 27. Creating a Dendrogram
+
+For dendrogram visualization, we commonly use SciPy.
+
+```python
+from scipy.cluster.hierarchy import dendrogram, linkage
+import matplotlib.pyplot as plt
+
+Z = linkage(X_scaled, method="ward")
+
+dendrogram(Z)
+
+plt.xlabel("Data Points")
+plt.ylabel("Distance")
+plt.title("Hierarchical Clustering Dendrogram")
+
+plt.show()
+```
+
+Here:
+
+```python
+linkage(X_scaled, method="ward")
+```
+
+builds the hierarchical merge structure.
+
+Then:
+
+```python
+dendrogram(Z)
+```
+
+visualizes it.
+
+---
+
+# 28. Dendrogram + Number of Clusters
+
+Suppose the dendrogram looks roughly like:
+
+```text
+Distance
+
+  10 |          ┌───────────────┐
+     |          │               │
+   8 |          │               │
+     |     ┌────┘               │
+   6 |     │                    │
+     | ┌───┴───┐                │
+   4 | │       │                │
+     | │       │                │
+   2 | A B C D E F
+```
+
+There is a large vertical jump before the final merge.
+
+A horizontal cut before that large jump can produce a useful cluster count.
+
+This is conceptually similar to looking for a large separation in the dendrogram.
+
+---
