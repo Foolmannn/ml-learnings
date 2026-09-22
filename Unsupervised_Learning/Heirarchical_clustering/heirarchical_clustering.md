@@ -954,3 +954,418 @@ A horizontal cut before that large jump can produce a useful cluster count.
 This is conceptually similar to looking for a large separation in the dendrogram.
 
 ---
+
+# 29. Agglomerative Clustering Parameters in Scikit-Learn
+
+The important parameters include:
+
+```python
+AgglomerativeClustering(
+    n_clusters=3,
+    metric="euclidean",
+    linkage="ward"
+)
+```
+
+### `n_clusters`
+
+Number of clusters you want at the end.
+
+```python
+n_clusters=3
+```
+
+### `metric`
+
+Distance metric.
+
+Examples can include:
+
+```text
+euclidean
+manhattan
+cosine
+```
+
+The valid combinations depend on the linkage.
+
+For example, Ward uses Euclidean distance.
+
+### `linkage`
+
+Controls how cluster-to-cluster distance/merge cost is determined.
+
+```text
+single
+complete
+average
+ward
+```
+
+---
+
+# 30. Important Difference: `metric` vs `linkage`
+
+These are often confused.
+
+### Metric
+
+Answers:
+
+> **How do I measure distance between individual observations?**
+
+Example:
+
+$$
+d(A,B)
+$$
+
+### Linkage
+
+Answers:
+
+> **How do I determine the distance/merge criterion between two clusters?**
+
+Example:
+
+$$
+D(C_1,C_2)
+$$
+
+So:
+
+```text
+Individual points
+      ↓
+    Metric
+      ↓
+Point-to-point distances
+      ↓
+   Linkage
+      ↓
+Cluster relationship
+```
+
+---
+
+# 31. Advantages
+
+### 1. No need to commit to K at the beginning
+
+You can inspect the hierarchy and choose a cut.
+
+### 2. Dendrogram is interpretable
+
+You can visually see how observations merge.
+
+### 3. Can discover different levels of grouping
+
+For example:
+
+```text
+Country
+ ├── Region
+ │    ├── Group A
+ │    └── Group B
+ └── Region
+      ├── Group C
+      └── Group D
+```
+
+### 4. No centroid requirement
+
+Unlike K-Means, hierarchical clustering does not require calculating cluster centroids as its fundamental representation.
+
+### 5. Useful for exploratory analysis
+
+Especially when you want to understand relationships between observations.
+
+---
+
+# 32. Disadvantages
+
+### 1. Computationally expensive
+
+Hierarchical clustering can become expensive for large datasets because it repeatedly considers distances between clusters.
+
+### 2. Sensitive to distance metric
+
+Different metrics can produce different hierarchies.
+
+### 3. Sensitive to linkage
+
+Single, complete, average, and Ward can produce substantially different results.
+
+### 4. Difficult to undo merges
+
+In standard agglomerative clustering, once two clusters are merged, that decision isn't normally undone.
+
+### 5. Scaling matters
+
+Features with larger numerical scales can dominate distance calculations.
+
+### 6. Noise/outliers can affect the hierarchy
+
+Outliers may create undesirable merges depending on the linkage.
+
+---
+
+# 33. When Should You Use Hierarchical Clustering?
+
+It is particularly useful when:
+
+* Dataset size is manageable
+* You want to understand hierarchical relationships
+* You don't know the appropriate cluster count initially
+* You want a dendrogram
+* Interpretability of the hierarchy matters
+* You are doing exploratory data analysis
+
+Examples:
+
+### Biology
+
+Grouping species based on characteristics.
+
+### Document analysis
+
+Grouping documents based on similarity.
+
+### Customer segmentation
+
+Finding different levels of customer similarity.
+
+### Gene expression analysis
+
+Finding groups of genes with similar behavior.
+
+### Image analysis
+
+Grouping similar image representations.
+
+---
+
+# 34. Hierarchical Clustering Example
+
+Suppose we have customer data:
+
+| Customer | Age | Annual Income |
+| -------- | --: | ------------: |
+| A        |  20 |            25 |
+| B        |  22 |            27 |
+| C        |  25 |            30 |
+| D        |  45 |            80 |
+| E        |  47 |            82 |
+| F        |  50 |            85 |
+
+After scaling:
+
+```text
+A B C                     D E F
+• • •                     • • •
+```
+
+Hierarchical clustering might discover:
+
+```text
+Cluster 1:
+A B C
+
+Cluster 2:
+D E F
+```
+
+But the dendrogram can also show the finer structure:
+
+```text
+             ┌───────────────┐
+             │               │
+        ┌────┴────┐      ┌───┴───┐
+        │         │      │       │
+       A B        C     D E      F
+```
+
+You could choose:
+
+```text
+2 clusters
+```
+
+or potentially:
+
+```text
+3 clusters
+```
+
+depending on the desired level of granularity.
+
+---
+
+# 35. A Very Important Concept: Hierarchical Clustering Does Not "Know" the Meaning of Clusters
+
+Suppose the algorithm returns:
+
+```text
+Cluster 0
+Cluster 1
+Cluster 2
+```
+
+It doesn't know:
+
+```text
+Cluster 0 = poor customers
+Cluster 1 = middle-income customers
+Cluster 2 = wealthy customers
+```
+
+You have to analyze the characteristics of each cluster.
+
+For example:
+
+```python
+df["cluster"] = labels
+
+print(
+    df.groupby("cluster")[["age", "income", "spending"]].mean()
+)
+```
+
+You might then discover:
+
+```text
+cluster    age    income    spending
+0          23     27        85
+1          48     82        20
+2          35     50        60
+```
+
+Now you can interpret the groups.
+
+---
+
+# 36. Hierarchical Clustering Workflow
+
+A practical workflow looks like this:
+
+```text
+Raw Data
+   ↓
+Data Cleaning
+   ↓
+Select Features
+   ↓
+Handle Missing Values
+   ↓
+Feature Scaling
+   ↓
+Choose Distance Metric
+   ↓
+Choose Linkage
+   ↓
+Build Hierarchy
+   ↓
+Generate Dendrogram
+   ↓
+Choose Cut / Number of Clusters
+   ↓
+Fit Clustering
+   ↓
+Evaluate
+   ↓
+Interpret Clusters
+```
+
+---
+
+# 37. Hierarchical Clustering vs DBSCAN vs K-Means
+
+| Property         | K-Means        | Hierarchical       | DBSCAN               |
+| ---------------- | -------------- | ------------------ | -------------------- |
+| Type             | Centroid-based | Hierarchical       | Density-based        |
+| Need K           | Yes            | Not necessarily    | No                   |
+| Dendrogram       | No             | Yes                | No                   |
+| Handles noise    | Poorly         | Depends            | Well                 |
+| Arbitrary shapes | Poorly         | Depends on linkage | Very well            |
+| Large data       | Good           | Less suitable      | Moderate             |
+| Hierarchy        | No             | Yes                | No                   |
+| Main parameter   | K              | Linkage + cut      | `eps`, `min_samples` |
+
+---
+
+# 38. What You Should Remember
+
+If you're preparing this for ML study/interviews, remember these key points:
+
+### Hierarchical clustering
+
+> Builds a hierarchy of clusters by progressively merging or splitting groups.
+
+### Agglomerative
+
+> Bottom-up: every point starts as its own cluster and clusters are repeatedly merged.
+
+### Divisive
+
+> Top-down: all points start in one cluster and are repeatedly split.
+
+### Dendrogram
+
+> Tree diagram showing the hierarchy of merges.
+
+### Linkage
+
+Determines how the distance/merge criterion between clusters is calculated.
+
+### Single linkage
+
+$$
+\boxed{\text{minimum distance}}
+$$
+
+### Complete linkage
+
+$$
+\boxed{\text{maximum distance}}
+$$
+
+### Average linkage
+
+$$
+\boxed{\text{average pairwise distance}}
+$$
+
+### Ward linkage
+
+$$
+\boxed{\text{minimize increase in within-cluster variance}}
+$$
+
+### Main advantage
+
+> Gives a hierarchy rather than only one fixed clustering.
+
+### Main disadvantage
+
+> Can be computationally expensive for large datasets.
+
+---
+
+## Recommended next study
+
+Since you're learning unsupervised learning in sequence, after this I would study **Hierarchical Clustering Mathematics**, especially:
+
+1. Euclidean distance
+2. Distance matrix
+3. Single linkage calculation
+4. Complete linkage calculation
+5. Average linkage calculation
+6. Ward linkage mathematics
+7. Step-by-step construction of a dendrogram
+8. How a dendrogram determines \(K\)
+9. Time/space complexity
+10. Full Python implementation from scratch
+11. Scikit-learn implementation
+12. Silhouette-score evaluation
+
+That mathematical step-by-step calculation is particularly useful because it makes the entire hierarchical clustering algorithm much easier to understand.
