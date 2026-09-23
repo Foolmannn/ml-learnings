@@ -1474,3 +1474,278 @@ DBSCAN(...).fit_predict(X_scaled)
 Other transformations can also be appropriate depending on the data.
 
 ---
+
+# 43. DBSCAN with a Real Dataset
+
+Suppose we have:
+
+```python
+import pandas as pd
+
+df = pd.read_csv("customers.csv")
+```
+
+Features:
+
+```text
+Age
+AnnualIncome
+SpendingScore
+```
+
+We can select:
+
+```python
+X = df[
+    [
+        "Age",
+        "AnnualIncome",
+        "SpendingScore"
+    ]
+]
+```
+
+Scale:
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_scaled = scaler.fit_transform(X)
+```
+
+Apply DBSCAN:
+
+```python
+from sklearn.cluster import DBSCAN
+
+model = DBSCAN(
+    eps=0.5,
+    min_samples=5
+)
+
+labels = model.fit_predict(X_scaled)
+```
+
+Add results:
+
+```python
+df["Cluster"] = labels
+```
+
+Now:
+
+```text
+Cluster = 0
+Cluster = 1
+Cluster = 2
+Cluster = -1
+```
+
+can represent different density groups and noise.
+
+---
+
+# 44. DBSCAN vs K-Means: Important Exam Point
+
+Suppose the question asks:
+
+> Why is DBSCAN better than K-Means for noisy data?
+
+You can explain:
+
+**K-Means assigns every point to one of the specified clusters.** Therefore, an outlier can strongly affect the centroid.
+
+DBSCAN explicitly identifies low-density points as noise:
+
+```text
+-1 = noise
+```
+
+and clusters points according to density.
+
+Thus, DBSCAN is naturally suited to datasets where noise/outliers are important.
+
+---
+
+# 45. Major Limitations to Remember
+
+The three biggest limitations are:
+
+### 1. Choosing `eps`
+
+A bad value can cause:
+
+```text
+too many clusters
+```
+
+or:
+
+```text
+one giant cluster
+```
+
+or:
+
+```text
+too much noise
+```
+
+### 2. Varying densities
+
+One global `eps` may not work well when different clusters have very different densities.
+
+### 3. High-dimensional data
+
+Distance-based density estimation becomes more difficult as dimensionality increases.
+
+---
+
+# 46. DBSCAN vs K-Means vs Hierarchical
+
+A useful exam comparison:
+
+| Property               | K-Means      | Hierarchical                   | DBSCAN               |
+| ---------------------- | ------------ | ------------------------------ | -------------------- |
+| Learning type          | Unsupervised | Unsupervised                   | Unsupervised         |
+| Main idea              | Centroids    | Nested groups                  | Density              |
+| Need `K` beforehand    | Yes          | No                             | No                   |
+| Arbitrary shapes       | Poor         | Good                           | Excellent            |
+| Noise handling         | Poor         | Limited                        | Excellent            |
+| Outlier identification | No           | Not inherent                   | Yes                  |
+| Centroids              | Yes          | No                             | No                   |
+| Dendrogram             | No           | Yes                            | No                   |
+| Main parameters        | K            | Linkage/cut                    | `eps`, `min_samples` |
+| Varying density        | —            | Can handle depending on method | Difficult            |
+| Scaling important      | Yes          | Yes                            | Yes                  |
+
+---
+
+# 47. Important Terms for Exam
+
+Remember these terms:
+
+```text
+DBSCAN
+│
+├── eps
+│
+├── min_samples / MinPts
+│
+├── Core Point
+│
+├── Border Point
+│
+├── Noise Point
+│
+├── ε-neighborhood
+│
+├── Density Reachability
+│
+├── Density Connectivity
+│
+└── Density-based clustering
+```
+
+---
+
+# 48. Short  Definition
+
+> **DBSCAN (Density-Based Spatial Clustering of Applications with Noise) is an unsupervised density-based clustering algorithm that groups points according to the density of their neighborhoods. It uses `eps` and `min_samples` to identify core points, expands clusters through density-connected core points, includes reachable border points, and labels points that do not belong to any dense region as noise. Unlike K-Means, DBSCAN does not require the number of clusters to be specified in advance and can discover arbitrarily shaped clusters.**
+
+---
+
+
+### 3. Parameters
+
+Explain:
+
+* `eps`
+* `min_samples`
+
+### 4. Types of points
+
+Explain:
+
+* Core point
+* Border point
+* Noise point
+
+### 5. Working
+
+Explain the complete step-by-step algorithm.
+
+### 6. Mathematical concept
+
+Include:
+
+$$
+N_\epsilon(p)
+$$
+
+and:
+
+$$
+|N_\epsilon(p)|\geq MinPts
+$$
+
+### 7. Density concepts
+
+Explain:
+
+* Directly density-reachable
+* Density-reachable
+* Density-connected
+
+### 8. Example/diagram
+
+Show dense clusters and noise.
+
+### 9. Advantages
+
+Discuss arbitrary shapes, noise handling, and no need for `K`.
+
+### 10. Limitations
+
+Discuss `eps`, varying density, scaling, and high-dimensional data.
+
+### 11. Applications
+
+Mention spatial analysis, anomaly detection, image processing, and location analysis.
+
+---
+
+## The core idea to remember
+
+If you remember only one thing about DBSCAN, remember this:
+
+```text
+K-Means:
+"Which centroid are you closest to?"
+
+DBSCAN:
+"Are you part of a sufficiently dense region?"
+```
+
+And its three fundamental decisions are:
+
+```text
+Enough nearby points?
+        │
+   ┌────┴────┐
+   │         │
+  YES        NO
+   │         │
+Core      Check whether
+Point     near a core point
+             │
+        ┌────┴────┐
+        │         │
+       YES        NO
+        │         │
+     Border      Noise
+```
+
+That density-based thinking is the foundation of **DBSCAN**.
