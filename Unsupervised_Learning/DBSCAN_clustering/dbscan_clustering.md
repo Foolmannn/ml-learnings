@@ -978,3 +978,499 @@ Noise
 ```
 
 ---
+
+# 28. Finding Number of Clusters
+
+Because DBSCAN doesn't require the number of clusters beforehand, we can determine it from the resulting labels.
+
+```python
+n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+
+print(n_clusters)
+```
+
+Why subtract one?
+
+Because:
+
+```text
+-1
+```
+
+represents noise, not a real cluster.
+
+---
+
+# 29. Counting Noise Points
+
+You can calculate:
+
+```python
+n_noise = list(labels).count(-1)
+
+print("Noise points:", n_noise)
+```
+
+Or:
+
+```python
+n_noise = np.sum(labels == -1)
+```
+
+---
+
+# 30. Complete Example
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.datasets import make_moons
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+
+# Generate data
+X, y = make_moons(
+    n_samples=500,
+    noise=0.08,
+    random_state=42
+)
+
+# Scale features
+X = StandardScaler().fit_transform(X)
+
+# Create DBSCAN model
+dbscan = DBSCAN(
+    eps=0.3,
+    min_samples=5
+)
+
+# Fit and predict
+labels = dbscan.fit_predict(X)
+
+# Number of clusters
+n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+
+# Number of noise points
+n_noise = np.sum(labels == -1)
+
+print("Number of clusters:", n_clusters)
+print("Number of noise points:", n_noise)
+
+# Plot
+plt.scatter(
+    X[:, 0],
+    X[:, 1],
+    c=labels
+)
+
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.title("DBSCAN Clustering")
+
+plt.show()
+```
+
+---
+
+# 31. How to Choose `eps`
+
+Choosing `eps` is one of the most important parts of DBSCAN.
+
+A common technique is the:
+
+> **k-distance graph**
+
+The basic idea is:
+
+1. Choose a value of `k`, often related to `min_samples`.
+2. Calculate the distance to the k-th nearest neighbor for every point.
+3. Sort those distances.
+4. Plot them.
+5. Look for a noticeable **elbow/knee**.
+6. Use that region as a candidate for `eps`.
+
+---
+
+# 32. K-Distance Method
+
+Example:
+
+```python
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
+import matplotlib.pyplot as plt
+
+k = 5
+
+neighbors = NearestNeighbors(
+    n_neighbors=k
+)
+
+neighbors.fit(X)
+
+distances, indices = neighbors.kneighbors(X)
+
+k_distances = distances[:, -1]
+
+k_distances = np.sort(k_distances)
+
+plt.plot(k_distances)
+
+plt.xlabel("Data Points")
+plt.ylabel("5th Nearest Neighbor Distance")
+plt.title("K-Distance Graph")
+
+plt.show()
+```
+
+You look for the point where the curve begins to rise sharply.
+
+That can provide a reasonable candidate for `eps`.
+
+---
+
+# 33. Choosing `min_samples`
+
+There isn't one universally correct value.
+
+A common heuristic is:
+
+$$
+MinPts \geq D+1
+$$
+
+where:
+
+* \(D\) = number of dimensions.
+
+Another commonly used practical rule is:
+
+$$
+MinPts \approx 2D
+$$
+
+or higher for noisy datasets.
+
+For example, if:
+
+```text
+D = 2
+```
+
+you might experiment with:
+
+```text
+min_samples = 4, 5, 6, 10
+```
+
+The final value should be selected based on the dataset and desired density definition rather than blindly following a formula.
+
+---
+
+# 34. DBSCAN Mathematics
+
+The central mathematical idea is the **epsilon neighborhood**.
+
+For a point \(p\):
+
+$$
+N_\epsilon(p)
+=
+\{q \in D \mid d(p,q) \leq \epsilon\}
+$$
+
+where:
+
+* \(D\) = dataset
+* \(p\) = current point
+* \(q\) = another point
+* \(d(p,q)\) = distance
+* \(\epsilon\) = neighborhood radius
+
+A point is core if:
+
+$$
+|N_\epsilon(p)| \geq MinPts
+$$
+
+Depending on the implementation/convention, whether the point itself is counted in `MinPts` matters. **scikit-learn counts the point itself** when determining `min_samples`.
+
+---
+
+# 35. Euclidean Distance
+
+For two points:
+
+$$
+P=(x_1,y_1)
+$$
+
+and
+
+$$
+Q=(x_2,y_2)
+$$
+
+Euclidean distance is:
+
+$$
+d(P,Q)
+=
+\sqrt{
+(x_1-x_2)^2+(y_1-y_2)^2
+}
+$$
+
+DBSCAN checks whether:
+
+$$
+d(P,Q)\leq\epsilon
+$$
+
+If yes, `Q` is within the epsilon neighborhood of `P`.
+
+---
+
+# 36. DBSCAN Pseudocode
+
+A simplified version:
+
+```text
+DBSCAN(D, eps, MinPts):
+
+    cluster_id = 0
+
+    for each point P in D:
+
+        if P is visited:
+            continue
+
+        mark P as visited
+
+        neighbors = points within eps of P
+
+        if number of neighbors < MinPts:
+            mark P as noise
+
+        else:
+            cluster_id += 1
+            create cluster
+
+            add P to cluster
+
+            for each point Q in neighbors:
+
+                if Q is not visited:
+                    mark Q as visited
+
+                    Q_neighbors = points within eps of Q
+
+                    if Q has at least MinPts neighbors:
+                        add Q_neighbors to neighbors
+
+                if Q is not yet assigned to a cluster:
+                    add Q to current cluster
+
+    return clusters
+```
+
+The key operation is:
+
+```text
+Find all neighbors within eps
+```
+
+and then recursively expand the cluster through core points.
+
+---
+
+# 37. DBSCAN Algorithm Complexity
+
+With a straightforward implementation, neighborhood searches can be expensive.
+
+A common complexity description is approximately:
+
+$$
+O(n\log n)
+$$
+
+when efficient spatial indexing structures can be used under favorable conditions.
+
+In unfavorable/high-dimensional settings, it can approach:
+
+$$
+O(n^2)
+$$
+
+because many pairwise distances may need to be examined.
+
+Therefore, DBSCAN can become computationally expensive for very large or high-dimensional datasets depending on the distance metric and indexing method.
+
+---
+
+# 38. Important Difference: DBSCAN Does Not Use Centroids
+
+K-Means:
+
+```text
+Data
+ ↓
+Centroid
+ ↓
+Distance
+ ↓
+Cluster
+```
+
+DBSCAN:
+
+```text
+Data
+ ↓
+Neighborhood
+ ↓
+Density
+ ↓
+Cluster
+```
+
+There is no:
+
+```text
+mean
+centroid
+cluster center
+```
+
+in the DBSCAN clustering process.
+
+---
+
+# 39. Why DBSCAN Can Find Arbitrary Shapes
+
+Consider two moon-shaped clusters:
+
+```text
+       ● ● ● ●
+     ●         ●
+   ●             ●
+
+             ●
+           ● ● ●
+         ● ● ● ●
+```
+
+A centroid-based algorithm may struggle because the clusters aren't naturally represented by circular regions around a center.
+
+DBSCAN follows dense connected regions:
+
+```text
+Dense region → Dense region → Dense region
+```
+
+so it can capture such shapes.
+
+This is one of DBSCAN's biggest strengths.
+
+---
+
+# 40. DBSCAN in Real-World Applications
+
+DBSCAN can be used in:
+
+### Geographic/spatial analysis
+
+Finding dense locations:
+
+```text
+GPS points → locations → clusters
+```
+
+### Anomaly detection
+
+Finding unusual observations:
+
+```text
+normal dense region
+        ↓
+isolated point → anomaly
+```
+
+### Customer segmentation
+
+Customers can potentially be grouped according to behavioral features.
+
+### Image processing
+
+Pixels/features can be grouped according to spatial or feature similarity.
+
+### Network analysis
+
+Dense groups of related entities can sometimes be discovered.
+
+### Location-based applications
+
+For example:
+
+```text
+GPS taxi locations
+       ↓
+DBSCAN
+       ↓
+popular pickup zones
+```
+
+---
+
+# 41. DBSCAN for Anomaly Detection
+
+One particularly useful property is:
+
+```python
+labels == -1
+```
+
+These observations are considered noise.
+
+For example:
+
+```python
+outliers = X[labels == -1]
+```
+
+This extracts the points identified as noise.
+
+Therefore:
+
+> DBSCAN can simultaneously perform clustering and density-based outlier identification.
+
+However, `-1` means "not assigned to a DBSCAN cluster"; whether every such point should be treated as a true anomaly depends on the application.
+
+---
+
+# 42. DBSCAN and Scaling
+
+Always think about this when using DBSCAN:
+
+```text
+Are my features on comparable scales?
+```
+
+If not:
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+X_scaled = StandardScaler().fit_transform(X)
+```
+
+Then:
+
+```python
+DBSCAN(...).fit_predict(X_scaled)
+```
+
+Other transformations can also be appropriate depending on the data.
+
+---
