@@ -508,3 +508,509 @@ Spam detection
 ```
 
 ---
+
+# 14. Main Techniques for Handling Imbalanced Data
+
+There are several approaches:
+
+```text
+                    Handling Imbalance
+                           │
+          ┌────────────────┼────────────────┐
+          ↓                ↓                ↓
+      Resampling       Algorithmic       Threshold
+          │             methods            tuning
+      ┌───┴───┐             │                │
+      ↓       ↓             ↓                ↓
+   Oversample Undersample Class weights   Change
+      │          │          │              threshold
+      ↓          ↓          ↓
+    SMOTE      Random      Balanced
+              sampling     models
+```
+
+Let's examine them in detail.
+
+---
+
+# 15. Method 1 — Random Undersampling
+
+**Undersampling** reduces the number of majority-class samples.
+
+Suppose:
+
+```text
+Majority → 9,000
+Minority → 1,000
+```
+
+We could randomly remove majority samples:
+
+```text
+Majority → 1,000
+Minority → 1,000
+```
+
+Now:
+
+```text
+1 : 1
+```
+
+---
+
+## Implementation
+
+Using `imbalanced-learn`:
+
+```python
+from imblearn.under_sampling import RandomUnderSampler
+
+rus = RandomUnderSampler(random_state=42)
+
+X_resampled, y_resampled = rus.fit_resample(X_train, y_train)
+```
+
+Check:
+
+```python
+print(y_resampled.value_counts())
+```
+
+---
+
+## Advantages
+
+* Simple
+* Fast
+* Reduces dataset size
+* Can help models focus on minority class
+
+---
+
+## Disadvantages
+
+The major problem is:
+
+> You are throwing away information.
+
+Suppose:
+
+```text
+9,000 majority samples
+```
+
+and you keep only:
+
+```text
+1,000
+```
+
+You discarded 8,000 potentially useful examples.
+
+---
+
+# 16. Method 2 — Random Oversampling
+
+Instead of removing majority samples, we increase the minority class.
+
+Original:
+
+```text
+Majority → 9,000
+Minority → 1,000
+```
+
+After oversampling:
+
+```text
+Majority → 9,000
+Minority → 9,000
+```
+
+The simplest approach duplicates minority samples.
+
+---
+
+## Implementation
+
+```python
+from imblearn.over_sampling import RandomOverSampler
+
+ros = RandomOverSampler(random_state=42)
+
+X_resampled, y_resampled = ros.fit_resample(X_train, y_train)
+```
+
+Check:
+
+```python
+print(y_resampled.value_counts())
+```
+
+---
+
+## Advantage
+
+You don't lose majority-class information.
+
+---
+
+## Disadvantage
+
+Because minority examples are duplicated, the model may **overfit** to them.
+
+For example:
+
+```text
+Original minority:
+
+A
+B
+C
+D
+```
+
+Oversampling might produce:
+
+```text
+A
+B
+C
+D
+A
+B
+C
+D
+A
+B
+C
+D
+```
+
+The model sees the same observations repeatedly.
+
+---
+
+# 17. Method 3 — SMOTE
+
+SMOTE is one of the most important techniques for imbalanced data.
+
+**SMOTE = Synthetic Minority Over-sampling Technique**
+
+Instead of simply copying minority samples, SMOTE generates **synthetic minority observations**.
+
+---
+
+# 18. How SMOTE Works
+
+Suppose we have minority observations:
+
+```text
+A
+B
+C
+```
+
+SMOTE finds neighboring minority samples.
+
+It then creates a new point somewhere between them.
+
+Conceptually:
+
+```text
+A -------- New Sample -------- B
+```
+
+The synthetic sample is generated using:
+
+$$
+x_{new}=x_i+\lambda(x_{neighbor}-x_i)
+$$
+
+where:
+
+$$
+0\leq\lambda\leq1
+$$
+
+For example:
+
+```text
+x_i       = 10
+x_neighbor = 20
+λ         = 0.5
+```
+
+Then:
+
+$$
+x_{new}=10+0.5(20-10)
+$$
+
+$$
+x_{new}=15
+$$
+
+So instead of copying 10 or 20, SMOTE creates a new synthetic point.
+
+---
+
+# 19. SMOTE Example
+
+Original:
+
+```text
+Majority → 900
+Minority → 100
+```
+
+After SMOTE:
+
+```text
+Majority → 900
+Minority → 900
+```
+
+The additional 800 minority observations are synthetically generated.
+
+---
+
+# 20. SMOTE Implementation
+
+Install:
+
+```bash
+pip install imbalanced-learn
+```
+
+Then:
+
+```python
+from imblearn.over_sampling import SMOTE
+
+smote = SMOTE(random_state=42)
+
+X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
+```
+
+Check:
+
+```python
+print(y_resampled.value_counts())
+```
+
+---
+
+# 21. Why SMOTE Can Be Better Than Random Oversampling
+
+Random oversampling:
+
+```text
+A
+B
+C
+A
+B
+C
+A
+B
+C
+```
+
+SMOTE:
+
+```text
+A
+B
+C
+A'
+B'
+C'
+D'
+...
+```
+
+where:
+
+```text
+A', B', C' ...
+```
+
+are synthetic samples.
+
+Therefore, SMOTE can reduce the direct duplication of minority examples.
+
+However, synthetic samples are not automatically realistic. SMOTE can perform poorly when minority samples overlap heavily with the majority class or when the minority distribution has unusual structure.
+
+---
+
+# 22. Important SMOTE Rule: Apply It Only to Training Data
+
+This is extremely important.
+
+### Wrong
+
+```python
+X_resampled, y_resampled = smote.fit_resample(X, y)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_resampled,
+    y_resampled
+)
+```
+
+This can cause **data leakage**.
+
+Why?
+
+Because information derived from the full dataset, including what should have been held out for testing, influences the synthetic data.
+
+---
+
+## Correct
+
+First split:
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+```
+
+Then apply SMOTE:
+
+```python
+smote = SMOTE(random_state=42)
+
+X_train_resampled, y_train_resampled = smote.fit_resample(
+    X_train,
+    y_train
+)
+```
+
+Keep the test set untouched.
+
+---
+
+# 23. Why `stratify=y`?
+
+When splitting imbalanced data, use:
+
+```python
+stratify=y
+```
+
+This attempts to preserve the original class proportions in train and test sets.
+
+For example:
+
+Original:
+
+```text
+Class 0 → 90%
+Class 1 → 10%
+```
+
+With stratification:
+
+```text
+Training:
+Class 0 → ~90%
+Class 1 → ~10%
+
+Testing:
+Class 0 → ~90%
+Class 1 → ~10%
+```
+
+---
+
+# 24. Method 4 — Borderline-SMOTE
+
+Regular SMOTE generates synthetic samples around minority observations.
+
+But not all minority observations are equally difficult.
+
+**Borderline-SMOTE** focuses on minority observations near the **decision boundary**.
+
+Conceptually:
+
+```text
+Majority        Majority
+   ○ ○ ○ ○ ○
+      ○  ●
+    ● ● ●
+      ●
+   Minority
+```
+
+The minority points near the boundary are more difficult to classify.
+
+Borderline-SMOTE generates more synthetic samples around these difficult areas.
+
+---
+
+# 25. Method 5 — SMOTE + Tomek Links
+
+Another approach is:
+
+```text
+SMOTE
+   ↓
+Generate minority samples
+   ↓
+Tomek Links
+   ↓
+Remove problematic overlapping samples
+```
+
+Tomek links identify pairs of observations from different classes that are very close to each other.
+
+This can help clean class overlap after oversampling.
+
+Implementation:
+
+```python
+from imblearn.combine import SMOTETomek
+
+smote_tomek = SMOTETomek(random_state=42)
+
+X_resampled, y_resampled = smote_tomek.fit_resample(
+    X_train,
+    y_train
+)
+```
+
+---
+
+# 26. Method 6 — SMOTEENN
+
+Another combination is:
+
+```text
+SMOTE + ENN
+```
+
+ENN stands for:
+
+**Edited Nearest Neighbours**
+
+It can remove noisy or ambiguous observations after oversampling.
+
+```python
+from imblearn.combine import SMOTEENN
+
+smote_enn = SMOTEENN(random_state=42)
+
+X_resampled, y_resampled = smote_enn.fit_resample(
+    X_train,
+    y_train
+)
+```
+
+---
