@@ -1570,3 +1570,599 @@ print(classification_report(y_test, y_pred))
 Notice that the minority-class recall may increase, although precision may change.
 
 ---
+
+# 46. Using SMOTE
+
+```python
+from imblearn.over_sampling import SMOTE
+
+smote = SMOTE(random_state=42)
+
+X_train_smote, y_train_smote = smote.fit_resample(
+    X_train,
+    y_train
+)
+```
+
+Then:
+
+```python
+model = LogisticRegression(max_iter=1000)
+
+model.fit(X_train_smote, y_train_smote)
+
+y_pred = model.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+```
+
+Notice that:
+
+```text
+SMOTE → training data changed
+Test data → unchanged
+```
+
+This is exactly what we want.
+
+---
+
+# 47. Using a Pipeline
+
+For real ML projects, a pipeline is often safer.
+
+```python
+from imblearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("smote", SMOTE(random_state=42)),
+    ("model", LogisticRegression(max_iter=1000))
+])
+
+pipeline.fit(X_train, y_train)
+
+y_pred = pipeline.predict(X_test)
+```
+
+Then:
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+The pipeline ensures that SMOTE is applied as part of the training workflow rather than manually contaminating the test set.
+
+---
+
+# 48. Cross-Validation with Imbalanced Data
+
+This is another area where mistakes are common.
+
+Suppose you do:
+
+```python
+SMOTE → entire dataset → cross-validation
+```
+
+This can cause leakage.
+
+Instead, put SMOTE **inside the pipeline**:
+
+```python
+from imblearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from imblearn.over_sampling import SMOTE
+
+pipeline = Pipeline([
+    ("smote", SMOTE(random_state=42)),
+    ("model", LogisticRegression(max_iter=1000))
+])
+
+scores = cross_val_score(
+    pipeline,
+    X,
+    y,
+    cv=5,
+    scoring="f1"
+)
+
+print(scores)
+print(scores.mean())
+```
+
+Now SMOTE is performed separately within each training fold.
+
+---
+
+# 49. Why Accuracy Should Not Be Your Main Metric
+
+Suppose:
+
+```text
+Actual:
+
+9500 negative
+500 positive
+```
+
+A model predicts:
+
+```text
+9700 negative
+300 positive
+```
+
+You should not look only at:
+
+```text
+Accuracy = ?
+```
+
+You should ask:
+
+```text
+How many of the 500 positive cases were detected?
+How many false positives occurred?
+What is precision?
+What is recall?
+What is F1?
+What does the confusion matrix look like?
+```
+
+---
+
+# 50. Confusion Matrix
+
+Use:
+
+```python
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+print(cm)
+```
+
+You can visualize it:
+
+```python
+from sklearn.metrics import ConfusionMatrixDisplay
+
+ConfusionMatrixDisplay.from_predictions(
+    y_test,
+    y_pred
+)
+```
+
+For imbalanced classification, always inspect the confusion matrix alongside aggregate metrics.
+
+---
+
+# 51. Macro vs Weighted F1
+
+This becomes particularly important in multiclass imbalance.
+
+Suppose:
+
+```text
+Class A → 9000
+Class B → 900
+Class C → 100
+```
+
+### Macro F1
+
+Calculate F1 separately for each class and then take the simple average:
+
+$$
+F1_{macro}
+=
+\frac{F1_A+F1_B+F1_C}{3}
+$$
+
+Every class gets equal importance.
+
+---
+
+### Weighted F1
+
+Weights each class according to its number of samples.
+
+Therefore, the majority class has much more influence.
+
+So:
+
+```text
+Macro F1
+→ "How well am I doing across classes equally?"
+
+Weighted F1
+→ "How well am I doing while accounting for class frequency?"
+```
+
+For imbalanced multiclass problems, **macro metrics can expose poor minority-class performance that weighted metrics may hide**.
+
+---
+
+# 52. Balanced Accuracy
+
+Another useful metric is:
+
+$$
+Balanced\ Accuracy=
+\frac{Sensitivity+Specificity}{2}
+$$
+
+Unlike ordinary accuracy, it gives equal importance to the two classes.
+
+Example:
+
+```text
+Sensitivity = 90%
+Specificity = 80%
+```
+
+Then:
+
+$$
+Balanced\ Accuracy
+=
+\frac{0.90+0.80}{2}
+=0.85
+$$
+
+So:
+
+```text
+Balanced Accuracy = 85%
+```
+
+In scikit-learn:
+
+```python
+from sklearn.metrics import balanced_accuracy_score
+
+score = balanced_accuracy_score(y_test, y_pred)
+
+print(score)
+```
+
+---
+
+# 53. Important: Scaling and SMOTE
+
+SMOTE uses distances between observations.
+
+Therefore, feature scaling can matter considerably when features have very different scales.
+
+For example:
+
+```text
+Age       → 18–80
+Income    → 20,000–2,000,000
+```
+
+Distance calculations could be dominated by income.
+
+A common pipeline is:
+
+```text
+Scaling
+   ↓
+SMOTE
+   ↓
+Model
+```
+
+For example:
+
+```python
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("smote", SMOTE(random_state=42)),
+    ("model", LogisticRegression(max_iter=1000))
+])
+```
+
+The exact ordering can depend on the preprocessing and model, but scaling before distance-based SMOTE is commonly appropriate for numeric features.
+
+---
+
+# 54. Common Mistakes
+
+## Mistake 1: Using Accuracy Only
+
+```python
+accuracy_score(y_test, y_pred)
+```
+
+is not enough.
+
+Use:
+
+```text
+Precision
+Recall
+F1
+Confusion Matrix
+PR-AUC
+ROC-AUC
+Balanced Accuracy
+```
+
+depending on the problem.
+
+---
+
+## Mistake 2: Applying SMOTE Before Train-Test Split
+
+Wrong:
+
+```python
+SMOTE → Split
+```
+
+Correct:
+
+```text
+Split
+ ↓
+SMOTE only on training
+ ↓
+Train
+ ↓
+Evaluate on untouched test set
+```
+
+---
+
+## Mistake 3: Resampling the Test Set
+
+Don't do:
+
+```python
+X_test, y_test = smote.fit_resample(X_test, y_test)
+```
+
+The test set should represent the distribution you actually want to evaluate against.
+
+---
+
+## Mistake 4: Assuming 50/50 Is Always Necessary
+
+You don't necessarily need:
+
+```text
+50% / 50%
+```
+
+The objective is not:
+
+> Make the dataset perfectly balanced at all costs.
+
+The objective is:
+
+> Build a model that performs appropriately on the classes that matter, under the real-world cost of errors.
+
+Sometimes:
+
+```text
+70/30
+```
+
+is perfectly reasonable.
+
+---
+
+# 55. Important Concept: Class Distribution vs Class Importance
+
+These are different concepts.
+
+Suppose:
+
+```text
+Normal = 99%
+Fraud = 1%
+```
+
+Fraud is rare.
+
+But that does **not** mean fraud is unimportant.
+
+Therefore:
+
+```text
+Frequency ≠ Importance
+```
+
+This is the fundamental reason imbalance needs special treatment.
+
+---
+
+# 56. Cost-Sensitive Classification
+
+Sometimes the real objective is not:
+
+```text
+maximize accuracy
+```
+
+but:
+
+```text
+minimize business cost
+```
+
+Suppose:
+
+```text
+False Positive cost = $5
+False Negative cost = $500
+```
+
+Then:
+
+```text
+FN is 100× more expensive.
+```
+
+You would likely want a model and threshold that reflect this asymmetry.
+
+This is why class weights and threshold tuning are often more meaningful than simply forcing a 50/50 dataset.
+
+---
+
+# 57. A Good Practical Workflow
+
+For a real-world imbalanced classification problem, I recommend this workflow:
+
+```text
+             Raw Dataset
+                  ↓
+          Check target distribution
+                  ↓
+            Train/Test Split
+                  ↓
+             stratify = y
+                  ↓
+        ┌─────────┴─────────┐
+        ↓                   ↓
+   Baseline Model      Class-weighted Model
+        │                   │
+        └─────────┬─────────┘
+                  ↓
+          Compare Metrics
+                  ↓
+       Precision / Recall / F1
+                  ↓
+       Confusion Matrix + PR Curve
+                  ↓
+       Try Resampling if useful
+                  ↓
+      SMOTE / Undersampling /
+      SMOTE-Tomek / SMOTE-ENN
+                  ↓
+          Cross-validation
+                  ↓
+       Threshold Optimization
+                  ↓
+       Final Model Selection
+                  ↓
+     Evaluate ONCE on Test Set
+```
+
+---
+
+# 58. What I Would Check in a Real Project
+
+When you encounter an imbalanced dataset, don't immediately apply SMOTE.
+
+First ask:
+
+### 1. How imbalanced is it?
+
+```python
+y.value_counts(normalize=True)
+```
+
+### 2. What is the cost of FP vs FN?
+
+This determines whether precision or recall deserves more emphasis.
+
+### 3. Is the dataset small or huge?
+
+* Small → oversampling may help.
+* Huge → undersampling may be practical.
+
+### 4. Is the minority class noisy?
+
+If yes, blindly applying SMOTE can create more problematic samples.
+
+### 5. Are the features numeric?
+
+SMOTE's standard version is designed around numeric feature spaces. For mixed categorical/numeric data, methods such as **SMOTENC** may be more appropriate.
+
+### 6. Is the positive class extremely rare?
+
+Consider:
+
+```text
+Class weighting
+Threshold tuning
+Anomaly detection
+Specialized evaluation
+```
+
+---
+
+# 59. Interview/Exam Definition
+
+> **Imbalanced data refers to a classification dataset in which the distribution of samples among classes is significantly unequal. This can cause a machine-learning model to become biased toward the majority class, making accuracy misleading and causing poor minority-class detection. Imbalanced data can be handled using techniques such as random undersampling, random oversampling, SMOTE, Borderline-SMOTE, SMOTE-Tomek, SMOTE-ENN, class weighting, threshold tuning, balanced ensemble methods, and anomaly detection. Appropriate evaluation metrics such as precision, recall, F1-score, balanced accuracy, ROC-AUC, PR-AUC, and confusion matrix should be used instead of relying only on accuracy.**
+
+---
+
+# 60. The Most Important Things to Remember
+
+If you're studying this for **ML implementation + exams**, remember these points:
+
+```text
+Imbalanced Data
+      ↓
+Majority class ≫ Minority class
+      ↓
+Accuracy can become misleading
+      ↓
+Use:
+    Precision
+    Recall
+    F1
+    PR-AUC
+    ROC-AUC
+    Balanced Accuracy
+      ↓
+Solutions:
+    ├── Undersampling
+    ├── Oversampling
+    ├── SMOTE
+    ├── Borderline-SMOTE
+    ├── SMOTE-Tomek
+    ├── SMOTE-ENN
+    ├── Class Weighting
+    ├── Threshold Tuning
+    ├── Balanced Ensembles
+    └── Anomaly Detection
+```
+
+### The golden rule:
+
+**Never apply resampling before splitting your data.**
+
+Use:
+
+```text
+Original Data
+     ↓
+Train/Test Split
+     ↓
+Resample TRAIN only
+     ↓
+Train Model
+     ↓
+Evaluate on ORIGINAL TEST SET
+```
+
+And for cross-validation:
+
+```text
+Pipeline:
+Scaling → Resampling → Model
+```
+
+so resampling happens independently inside each training fold.
