@@ -1014,3 +1014,559 @@ X_resampled, y_resampled = smote_enn.fit_resample(
 ```
 
 ---
+
+# 27. Method 7 — Class Weighting
+
+Instead of modifying the dataset, we can tell the model:
+
+> Minority-class mistakes are more expensive.
+
+For example:
+
+```text
+Majority class weight = 1
+Minority class weight = 10
+```
+
+A wrong minority prediction contributes more to the training objective.
+
+This is called **cost-sensitive learning**.
+
+---
+
+# 28. Logistic Regression with Class Weights
+
+```python
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression(
+    class_weight="balanced",
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+```
+
+`balanced` automatically calculates class weights based on class frequencies.
+
+Conceptually:
+
+$$
+w_j=\frac{n}{k n_j}
+$$
+
+where:
+
+* \(n\) = total number of samples
+* \(k\) = number of classes
+* \(n_j\) = number of samples in class \(j\)
+
+Therefore, rare classes receive larger weights.
+
+---
+
+# 29. Decision Tree with Class Weight
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+
+model = DecisionTreeClassifier(
+    class_weight="balanced",
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+```
+
+---
+
+# 30. Random Forest with Class Weight
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(
+    n_estimators=200,
+    class_weight="balanced",
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+```
+
+Another option is:
+
+```python
+class_weight="balanced_subsample"
+```
+
+which calculates weights separately for each bootstrap sample.
+
+---
+
+# 31. XGBoost and Imbalanced Data
+
+For binary classification, XGBoost provides:
+
+```python
+scale_pos_weight
+```
+
+Example:
+
+```python
+from xgboost import XGBClassifier
+
+model = XGBClassifier(
+    scale_pos_weight=9
+)
+
+model.fit(X_train, y_train)
+```
+
+A common starting point is:
+
+$$
+scale\_pos\_weight=
+\frac{\text{number of negative samples}}
+{\text{number of positive samples}}
+$$
+
+Suppose:
+
+```text
+Negative = 9,000
+Positive = 1,000
+```
+
+Then:
+
+$$
+scale\_pos\_weight=\frac{9000}{1000}=9
+$$
+
+---
+
+# 32. Method 8 — Threshold Tuning
+
+Many classification models produce probabilities.
+
+Example:
+
+```python
+model.predict_proba(X_test)
+```
+
+Output:
+
+```text
+[0.12, 0.87]
+[0.70, 0.30]
+[0.45, 0.55]
+```
+
+Normally, a threshold of:
+
+```text
+0.5
+```
+
+is used.
+
+For example:
+
+```python
+probability >= 0.5 → Class 1
+probability < 0.5  → Class 0
+```
+
+But we can change this threshold.
+
+---
+
+# 33. Example of Threshold Tuning
+
+Suppose:
+
+```text
+Probability = 0.35
+```
+
+Default:
+
+```text
+0.35 < 0.5
+→ Class 0
+```
+
+But if we use:
+
+```text
+threshold = 0.30
+```
+
+then:
+
+```text
+0.35 >= 0.30
+→ Class 1
+```
+
+Lowering the threshold generally makes the classifier predict the positive class more often.
+
+This can increase recall, but it can also increase false positives and reduce precision.
+
+---
+
+# 34. Why Threshold Tuning Is Powerful
+
+Suppose you are detecting disease.
+
+You may prefer:
+
+```text
+Recall = very high
+```
+
+because missing a sick patient is costly.
+
+You could lower the threshold:
+
+```text
+0.50 → 0.40 → 0.30
+```
+
+This may identify more positive cases.
+
+For a system where false positives are expensive, you might instead choose a higher threshold.
+
+The correct threshold depends on the application's costs and objectives.
+
+---
+
+# 35. Method 9 — Balanced Ensemble Methods
+
+Some ensemble methods are designed specifically for imbalanced data.
+
+Examples include:
+
+* Balanced Random Forest
+* EasyEnsemble
+* RUSBoost
+
+---
+
+## Balanced Random Forest
+
+Instead of allowing every tree to see the original class distribution, balanced sampling can be used for each tree.
+
+Conceptually:
+
+```text
+Original dataset
+
+Majority: 9000
+Minority: 1000
+
+       ↓
+
+Tree 1:
+Majority: 1000
+Minority: 1000
+
+Tree 2:
+Majority: 1000
+Minority: 1000
+
+Tree 3:
+Majority: 1000
+Minority: 1000
+```
+
+This helps individual trees learn from minority observations.
+
+---
+
+# 36. Method 10 — Collect More Minority-Class Data
+
+Sometimes the best solution is not an algorithmic trick.
+
+If possible, collect more real examples.
+
+For example:
+
+```text
+Current:
+Normal = 90,000
+Fraud = 1,000
+```
+
+Instead of artificially generating fraud cases, collect more actual fraud examples.
+
+Real data is generally preferable to synthetic data when it can be obtained reliably.
+
+---
+
+# 37. Method 11 — Data Augmentation
+
+For some domains, particularly images, audio, and text, we can create variations of minority examples.
+
+For example, image classification:
+
+```text
+Original minority image
+       ↓
+Rotation
+       ↓
+Crop
+       ↓
+Flip
+       ↓
+Brightness variation
+```
+
+This creates additional training examples.
+
+For image datasets, augmentation can be very useful when the minority class has relatively few examples.
+
+---
+
+# 38. Method 12 — Anomaly Detection
+
+Sometimes the minority class is **extremely rare**.
+
+For example:
+
+```text
+Normal transactions → 999,900
+Fraud → 100
+```
+
+In such cases, treating the problem as ordinary binary classification may not always be ideal.
+
+You can consider anomaly/outlier detection methods such as:
+
+* Isolation Forest
+* One-Class SVM
+* Autoencoders
+
+The choice depends on whether you have reliable labels for the rare class.
+
+---
+
+# 39. Comparing the Main Techniques
+
+| Technique            | What it does                         | Main advantage                               | Main problem                          |
+| -------------------- | ------------------------------------ | -------------------------------------------- | ------------------------------------- |
+| Random Undersampling | Removes majority samples             | Simple and fast                              | Loses information                     |
+| Random Oversampling  | Duplicates minority samples          | Simple                                       | Overfitting                           |
+| SMOTE                | Generates synthetic minority samples | Less direct duplication                      | Synthetic samples may be unrealistic  |
+| Borderline-SMOTE     | Focuses on boundary samples          | Focuses on difficult cases                   | Can amplify noisy boundaries          |
+| SMOTE-Tomek          | Oversampling + cleaning              | Handles overlap                              | More complex                          |
+| SMOTE-ENN            | Oversampling + cleaning              | Strong cleaning                              | Can remove useful samples             |
+| Class Weight         | Penalizes minority mistakes          | No resampling                                | May not solve all distributions       |
+| Threshold Tuning     | Changes decision threshold           | Directly controls precision/recall trade-off | Doesn't change learned representation |
+| Balanced Ensembles   | Balanced sampling within ensembles   | Strong practical approach                    | More computation                      |
+| More Data            | Adds real minority examples          | Best when feasible                           | Often expensive                       |
+
+---
+
+# 40. Resampling vs Class Weighting
+
+A very important comparison.
+
+### Resampling
+
+Changes the training dataset:
+
+```text
+Original
+
+Majority = 9000
+Minority = 1000
+
+        ↓
+
+Resampling
+
+Majority = 9000
+Minority = 9000
+```
+
+### Class weighting
+
+Keeps the data unchanged:
+
+```text
+Majority = 9000
+Minority = 1000
+```
+
+but changes the training objective:
+
+```text
+Majority mistake → low cost
+Minority mistake → high cost
+```
+
+---
+
+# 41. Which Technique Should You Use?
+
+There is no universal solution.
+
+A practical approach is:
+
+### Case 1: Moderate imbalance
+
+Try:
+
+```text
+Class weighting
+```
+
+first.
+
+---
+
+### Case 2: Severe imbalance
+
+Consider:
+
+```text
+Class weighting
++
+Threshold tuning
++
+Precision/Recall evaluation
+```
+
+and potentially resampling.
+
+---
+
+### Case 3: Small minority dataset
+
+Try:
+
+```text
+SMOTE
+```
+
+or another carefully chosen oversampling method.
+
+---
+
+### Case 4: Very large dataset
+
+Undersampling can become attractive because training on millions of majority examples may be expensive.
+
+---
+
+### Case 5: Extremely rare events
+
+Consider:
+
+```text
+Anomaly detection
+```
+
+in addition to supervised classification, depending on the availability and quality of labels.
+
+---
+
+# 42. A Complete Practical Example
+
+Let's create an imbalanced classification dataset.
+
+```python
+from sklearn.datasets import make_classification
+
+X, y = make_classification(
+    n_samples=10000,
+    n_features=10,
+    n_informative=5,
+    n_redundant=2,
+    weights=[0.95, 0.05],
+    random_state=42
+)
+```
+
+Here:
+
+```text
+Class 0 ≈ 95%
+Class 1 ≈ 5%
+```
+
+---
+
+# 43. Split the Dataset
+
+```python
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    stratify=y,
+    random_state=42
+)
+```
+
+---
+
+# 44. Baseline Model
+
+Let's first train a model without handling imbalance.
+
+```python
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression(max_iter=1000)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+```
+
+Evaluate:
+
+```python
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+```
+
+Pay attention to:
+
+```text
+precision
+recall
+f1-score
+support
+```
+
+especially for the minority class.
+
+---
+
+# 45. Using Class Weight
+
+```python
+model = LogisticRegression(
+    class_weight="balanced",
+    max_iter=1000
+)
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+```
+
+Notice that the minority-class recall may increase, although precision may change.
+
+---
